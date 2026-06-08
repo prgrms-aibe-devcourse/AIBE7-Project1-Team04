@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Commit Batch KR"
+  short_description: "Split changes into small conventional commits and push them"
+  default_prompt: "Inspect the git working tree, split unrelated changes into focused commits, write messages as \"English category: 한글 메시지\", exclude secrets like .env, and push when the commit series is complete."
