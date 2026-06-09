@@ -36,27 +36,42 @@
 ## 📁 프로젝트 구조
 
 ```
-├── client/
-│   ├── index.html
+├── public/                         # 프론트엔드 정적 파일
+│   ├── index.html                  # 메인 페이지
+│   ├── assets/
+│   │   ├── fonts/
+│   │   ├── icons/
+│   │   └── images/
 │   ├── css/
+│   │   ├── auth.css                # 로그인/회원가입 스타일
+│   │   └── common.css              # 공통 스타일
 │   ├── js/
-│   └── assets/
-├── server/
-│   ├── app.js
-│   ├── routes/
+│   │   ├── auth/
+│   │   │   ├── login.js            # 로그인 폼 처리
+│   │   │   └── signup.js           # 회원가입 폼 처리
+│   │   ├── common/
+│   │   │   └── api.js              # 공통 API 요청 유틸
+│   │   ├── components/             # 재사용 UI 컴포넌트
+│   │   └── pages/                  # 페이지별 JS
+│   └── pages/
+│       ├── login.html              # 로그인 페이지
+│       └── signup.html             # 회원가입 페이지
+├── server/                         # 백엔드 Express 서버
+│   ├── app.js                      # 서버 진입점
+│   ├── config/
+│   │   └── supabaseClient.js       # Supabase 클라이언트 초기화
 │   ├── controllers/
-│   └── services/
-├── docs/
-│   ├── requirements.md
-│   ├── wireframe/
-│   └── erd/
-├── .env.example
-├── agent.md
-├── README.md
-└── package.json
+│   │   └── authRoutes.js           # 인증 라우트 정의
+│   └── routes/
+│       └── authController.js       # 인증 컨트롤러 (signup, login)
+├── docs/                           # 문서
+├── .env.example                    # 환경 변수 예시
+├── .gitignore
+├── AGENT.md                        # AI 에이전트 명세
+├── DESIGN.md
+├── package.json
+└── README.md
 ```
-
-<!-- 실제 구조 확정되면 위 트리 수정 -->
 
 ---
 
@@ -87,8 +102,9 @@ cp .env.example .env
 | ---------------------------- | --------------------- | ------------------------- |
 | `GEMINI_API_KEY`             | Gemini API 키         | <!-- -->                  |
 | `GROQ_API_KEY`               | Groq API 키           | <!-- -->                  |
+| `NIM_API_KEY`                | NIM API 키            | <!-- -->                  |
 | `SUPABASE_URL`               | Supabase 프로젝트 URL | `https://xxx.supabase.co` |
-| `SUPABASE_KEY`               | Supabase anon key     | `eyJ...`                  |
+| `SUPABASE_ANON_KEY`          | Supabase anon key     | `eyJ...`                  |
 | <!-- 추가 키 있으면 여기 --> |                       |                           |
 
 ### 4. 실행
