@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>이미지 여행지 추천</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-1: #f6f7fb;
+        --bg-2: #eef2ff;
+        --text: #111827;
+        --muted: #6b7280;
+        --line: #dbe2ef;
+        --primary: #1d4ed8;
+        --primary-2: #2563eb;
+        --card: rgba(255, 255, 255, 0.86);
+        --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+        --radius: 24px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        color: var(--text);
+        background:
+          radial-gradient(
+            circle at top left,
+            #ffffff 0,
+            rgba(255, 255, 255, 0) 34%
+          ),
+          radial-gradient(
+            circle at right 15%,
+            rgba(59, 130, 246, 0.14),
+            rgba(59, 130, 246, 0) 32%
+          ),
+          linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+      }
+
+      .shell {
+        max-width: 1100px;
+      }
+
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(29, 78, 216, 0.08);
+        color: var(--primary);
+        font-weight: 700;
+        font-size: 0.9rem;
+      }
+
+      .glass-card {
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        background: var(--card);
+        backdrop-filter: blur(18px);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      .page {
+        display: none;
+      }
+
+      .page.active {
+        display: block;
+      }
+
+      .home-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .choice-card {
+        min-height: 240px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.96) 0%,
+          rgba(248, 250, 252, 0.88) 100%
+        );
+        padding: 28px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease,
+          border-color 0.2s ease;
+        text-align: left;
+        width: 100%;
+      }
+
+      .choice-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(37, 99, 235, 0.25);
+        box-shadow: 0 20px 48px rgba(15, 23, 42, 0.12);
+      }
+
+      .choice-kicker {
+        color: var(--primary);
+        font-weight: 700;
+        font-size: 0.9rem;
+        letter-spacing: 0.02em;
+      }
+
+      .choice-title {
+        font-size: clamp(1.6rem, 3vw, 2.25rem);
+        line-height: 1.1;
+        font-weight: 800;
+        margin: 10px 0 14px;
+        letter-spacing: -0.03em;
+      }
+
+      .choice-desc {
+        color: var(--muted);
+        font-size: 0.98rem;
+        line-height: 1.6;
+        max-width: 30ch;
+      }
+
+      .choice-cta {
+        margin-top: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 0;
+        border-radius: 16px;
+        padding: 16px 18px;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--primary-2) 100%
+        );
+        color: white;
+        font-size: 1rem;
+        font-weight: 700;
+      }
+
+      .choice-cta.secondary {
+        background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+      }
+
+      .page-title {
+        font-size: clamp(2rem, 4vw, 3rem);
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+        margin-bottom: 12px;
+      }
+
+      .page-desc {
+        color: var(--muted);
+        max-width: 64ch;
+        line-height: 1.65;
+      }
+
+      .back-btn {
+        border: 1px solid var(--line);
+        background: white;
+        border-radius: 14px;
+        padding: 11px 16px;
+        font-weight: 700;
+      }
+
+      .upload-box {
+        width: 100%;
+        min-height: 230px;
+        border-radius: 22px;
+        border: 2px dashed #c7d2fe;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.88) 0%,
+          rgba(238, 242, 255, 0.54) 100%
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+        cursor: pointer;
+        transition:
+          border-color 0.2s ease,
+          transform 0.2s ease;
+      }
+
+      .upload-box:hover {
+        transform: translateY(-2px);
+        border-color: var(--primary);
+      }
+
+      .upload-box.has-image {
+        border-style: solid;
+        border-color: rgba(29, 78, 216, 0.18);
+        background: white;
+      }
+
+      .upload-placeholder {
+        padding: 20px;
+        text-align: center;
+        color: #64748b;
+        font-weight: 600;
+      }
+
+      .upload-placeholder svg {
+        display: block;
+        margin: 0 auto 12px;
+        opacity: 0.55;
+      }
+
+      .preview {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .section-label {
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+
+      .result {
+        display: none;
+      }
+
+      .result.visible {
+        display: block;
+      }
+
+      .spot-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        padding: 16px 18px;
+        background: white;
+      }
+
+      .spot-name {
+        font-weight: 800;
+        margin: 0 0 6px;
+      }
+
+      .spot-country {
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .spot-reason {
+        margin: 0;
+        color: #475569;
+        line-height: 1.55;
+      }
+
+      .travel-grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .travel-card {
+        overflow: hidden;
+        border-radius: 22px;
+        border: 1px solid #e5e7eb;
+        background: white;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+      }
+
+      .travel-map {
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        object-fit: cover;
+        display: block;
+        background: #e2e8f0;
+      }
+
+      .travel-card-body {
+        padding: 16px 16px 18px;
+      }
+
+      .travel-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .travel-card-title {
+        font-weight: 800;
+        font-size: 1.02rem;
+        margin: 0;
+        line-height: 1.3;
+      }
+
+      .travel-card-subtitle {
+        margin: 4px 0 0;
+        color: #64748b;
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .travel-reason {
+        margin: 0;
+        color: #475569;
+        line-height: 1.6;
+        font-size: 0.95rem;
+      }
+
+      .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .meta-badge,
+      .mood-tag {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 0.84rem;
+        font-weight: 700;
+      }
+
+      .meta-badge {
+        background: #f1f5f9;
+        color: #334155;
+      }
+
+      .mood-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .mood-tag {
+        background: rgba(29, 78, 216, 0.08);
+        color: var(--primary);
+      }
+
+      .error-box {
+        display: none;
+        border-radius: 18px;
+        border: 1px solid #fecaca;
+        background: #fef2f2;
+        color: #b91c1c;
+        padding: 14px 16px;
+      }
+
+      .error-box.visible {
+        display: block;
+      }
+
+      .status {
+        min-height: 1.4em;
+        color: #475569;
+        font-weight: 600;
+      }
+
+      .status-dots::after {
+        content: "";
+        animation: dots 1.2s steps(4, end) infinite;
+      }
+
+      @keyframes dots {
+        0% {
+          content: "";
+        }
+        25% {
+          content: ".";
+        }
+        50% {
+          content: "..";
+        }
+        75% {
+          content: "...";
+        }
+      }
+
+      .fade-up {
+        animation: fadeUp 0.45s ease both;
+      }
+
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 991.98px) {
+        .home-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .travel-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container py-4 py-md-5 shell">
+      <section id="homePage" class="page active fade-up">
+        <div class="text-center mb-4 mb-md-5">
+          <span class="hero-badge mb-3">이미지 기반 여행지 추천</span>
+          <h1 class="page-title">어떤 방식으로 여행지를 추천할까요</h1>
+          <p class="page-desc mx-auto mb-0">
+            이미지를 올리고 원하는 방식에 맞게 여행지를 추천받을 수 있습니다.
+            위치를 추정해서 추천할 수도 있고, 사진의 분위기를 읽어서 추천할 수도
+            있습니다.
+          </p>
+        </div>
+
+        <div class="home-grid">
+          <button
+            type="button"
+            class="choice-card text-start"
+            data-open="location"
+          >
+            <div>
+              <div class="choice-kicker">MODE 01</div>
+              <div class="choice-title">이미지 위치 기반 여행지 추천</div>
+              <div class="choice-desc">
+                사진 속 위치 단서를 활용해 어디인지 추정하고, 그 지역과 어울리는
+                여행지를 추천합니다.
+              </div>
+            </div>
+            <span class="choice-cta">위치 기반 추천 시작</span>
+          </button>
+
+          <button type="button" class="choice-card text-start" data-open="mood">
+            <div>
+              <div class="choice-kicker">MODE 02</div>
+              <div class="choice-title">이미지 분위기 기반 여행지 추천</div>
+              <div class="choice-desc">
+                사진의 색감, 분위기, 계절감 같은 인상을 분석해 비슷한 감성의
+                여행지를 추천합니다.
+              </div>
+            </div>
+            <span class="choice-cta secondary">분위기 기반 추천 시작</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="locationPage" class="page">
+        <div
+          class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4"
+        >
+          <div>
+            <button type="button" class="back-btn mb-3" data-back>
+              ← 홈으로
+            </button>
+            <h2 class="page-title mb-2">이미지 위치 기반 여행지 추천</h2>
+            <p class="page-desc mb-0">
+              사진을 업로드하고 위치 힌트를 입력하면, 사진의 위치를 추정한 뒤 그
+              지역에 맞는 여행지를 추천합니다.
+            </p>
+          </div>
+        </div>
+
+        <div class="glass-card p-3 p-md-4">
+          <div class="row g-4">
+            <div class="col-12 col-lg-5">
+              <div class="section-label">이미지 업로드</div>
+              <input
+                id="locationImageInput"
+                type="file"
+                accept="image/*"
+                class="d-none"
+              />
+              <label
+                for="locationImageInput"
+                id="locationUploadBox"
+                class="upload-box"
+              >
+                <div id="locationPlaceholder" class="upload-placeholder">
+                  <svg
+                    width="36"
+                    height="36"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.6"
+                      d="M4 16l4.5-4.5a2 2 0 012.8 0L16 16m-2-2l1.5-1.5a2 2 0 012.8 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  이미지를 업로드하면 미리보기가 표시됩니다.
+                </div>
+                <img
+                  id="locationPreview"
+                  class="preview d-none"
+                  alt="위치 추천 이미지 미리보기"
+                />
+              </label>
+            </div>
+
+            <div class="col-12 col-lg-7">
+              <div class="section-label">추가 정보</div>
+              <div class="mb-3">
+                <label for="locationHintInput" class="form-label fw-bold"
+                  >힌트용 텍스트</label
+                >
+                <input
+                  id="locationHintInput"
+                  type="text"
+                  class="form-control form-control-lg"
+                  placeholder="예: 바다, 유럽풍 건물, 골목길, 여행 시기"
+                />
+              </div>
+
+              <div class="d-flex flex-wrap gap-2 mb-3">
+                <button
+                  id="locationRecommendBtn"
+                  type="button"
+                  class="btn btn-primary btn-lg px-4"
+                  disabled
+                >
+                  위치 기반 여행지 추천
+                </button>
+                <button
+                  id="moveToMoodBtn"
+                  type="button"
+                  class="btn btn-dark btn-lg px-4 d-none"
+                >
+                  분위기 기반 여행지 추천 →
+                </button>
+              </div>
+              </div>
+
+              <div id="locationStatus" class="status mb-3"></div>
+              <div id="locationError" class="error-box mb-3"></div>
+              <div id="locationResult" class="result"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="moodPage" class="page">
+        <div
+          class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4"
+        >
+          <div>
+            <button type="button" class="back-btn mb-3" data-back>
+              ← 홈으로
+            </button>
+            <h2 class="page-title mb-2">이미지 분위기 기반 여행지 추천</h2>
+            <p class="page-desc mb-0">
+              사진의 분위기를 해석하고, 추가사항을 반영해 어울리는 감성 여행지를
+              추천합니다.
+            </p>
+          </div>
+        </div>
+
+        <div class="glass-card p-3 p-md-4">
+          <div class="row g-4">
+            <div class="col-12 col-lg-5">
+              <div class="section-label">이미지 업로드</div>
+              <input
+                id="moodImageInput"
+                type="file"
+                accept="image/*"
+                class="d-none"
+              />
+              <label for="moodImageInput" id="moodUploadBox" class="upload-box">
+                <div id="moodPlaceholder" class="upload-placeholder">
+                  <svg
+                    width="36"
+                    height="36"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.6"
+                      d="M4 16l4.5-4.5a2 2 0 012.8 0L16 16m-2-2l1.5-1.5a2 2 0 012.8 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  이미지를 업로드하면 미리보기가 표시됩니다.
+                </div>
+                <img
+                  id="moodPreview"
+                  class="preview d-none"
+                  alt="분위기 추천 이미지 미리보기"
+                />
+              </label>
+            </div>
+
+            <div class="col-12 col-lg-7">
+              <div class="section-label">추가 정보</div>
+              <div class="mb-3">
+                <label for="moodExtraInput" class="form-label fw-bold"
+                  >추가사항용 텍스트</label
+                >
+                <input
+                  id="moodExtraInput"
+                  type="text"
+                  class="form-control form-control-lg"
+                  placeholder="예: 조용한 곳, 사진 명소, 커플 여행, 겨울 분위기"
+                />
+              </div>
+
+              <div class="d-flex flex-wrap gap-2 mb-3">
+                <button
+                  id="moodRecommendBtn"
+                  type="button"
+                  class="btn btn-dark btn-lg px-4"
+                  disabled
+                >
+                  분위기 기반 여행지 추천
+                </button>
+              </div>
+
+              <div id="moodStatus" class="status mb-3"></div>
+              <div id="moodError" class="error-box mb-3"></div>
+              <div id="moodResult" class="result"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="../js/pages/image-analyze.js"></script>
+  </body>
+</html>
