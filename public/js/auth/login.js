@@ -6,6 +6,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   const message = document.getElementById('message');
 
   message.textContent = '';
+  message.className = 'auth-message';
 
   try {
     const data = await requestApi('/api/auth/login', {
@@ -14,11 +15,13 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     });
 
     localStorage.setItem('session', JSON.stringify(data.session));
-    message.textContent = data.message;
+    message.textContent = data.message || '로그인 성공! 잠시 후 이동합니다.';
+    message.classList.add('visible', 'success');
     setTimeout(() => {
       window.location.href = '/';
     }, 1000);
   } catch (err) {
     message.textContent = err.message;
+    message.classList.add('visible', 'error');
   }
 });
