@@ -3,55 +3,143 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>회원가입 — TripAI</title>
+    <title>회원가입 — PicTrip</title>
     <link rel="stylesheet" href="../css/auth.css" />
   </head>
   <body>
-    <a href="/" class="auth-brand">
-      <div class="auth-brand-icon">✈️</div>
-      <span class="auth-brand-name">TripAI</span>
-    </a>
+    <header class="auth-nav">
+      <div class="auth-nav-inner">
+        <a href="/" class="auth-nav-logo">
+          <svg class="auth-nav-logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="4.5" fill="#2563eb"/>
+            <circle cx="26" cy="10" r="4.5" fill="#2563eb"/>
+            <circle cx="10" cy="26" r="4.5" fill="#2563eb"/>
+            <circle cx="26" cy="26" r="4.5" fill="#2563eb"/>
+            <line x1="10" y1="10" x2="26" y2="10" stroke="#2563eb" stroke-width="1.5"/>
+            <line x1="10" y1="10" x2="10" y2="26" stroke="#2563eb" stroke-width="1.5"/>
+            <line x1="26" y1="10" x2="26" y2="26" stroke="#2563eb" stroke-width="1.5"/>
+            <line x1="10" y1="26" x2="26" y2="26" stroke="#2563eb" stroke-width="1.5"/>
+            <line x1="10" y1="10" x2="26" y2="26" stroke="#2563eb" stroke-width="1" stroke-dasharray="2 2"/>
+            <line x1="26" y1="10" x2="10" y2="26" stroke="#2563eb" stroke-width="1" stroke-dasharray="2 2"/>
+          </svg>
+          <span class="auth-nav-logo-name">PicTrip</span>
+        </a>
 
-    <div class="auth-card">
-      <div class="auth-header">
-        <h1 class="auth-title">여행을 시작해 볼까요?</h1>
-        <p class="auth-subtitle">AI 여행 플래너와 함께하는 첫 번째 여정.</p>
+        <ul class="auth-nav-links">
+          <li><a href="/">홈</a></li>
+          <li><a href="#">이미지 검색</a></li>
+          <li><a href="#">여행 계획</a></li>
+          <li><a href="#">커뮤니티</a></li>
+          <li><a href="#">마이페이지</a></li>
+        </ul>
+
+        <a href="/pages/login.html" class="auth-nav-btn">로그인</a>
       </div>
+    </header>
 
-      <form id="signup-form" class="auth-form" novalidate>
-        <div class="form-group">
-          <label class="form-label" for="email">이메일</label>
-          <input
-            id="email"
-            class="form-input"
-            type="email"
-            placeholder="example@email.com"
-            required
-            autocomplete="email"
-          />
+    <main class="auth-main">
+      <div class="auth-container">
+        <div class="auth-split-card">
+
+          <!-- 좌: 서비스 소개 -->
+          <div class="auth-info-panel">
+            <h2 class="auth-info-title">PicTrip 시작하기</h2>
+            <p class="auth-info-desc">
+              사진 속 장소와 분위기를 분석해<br />
+              나에게 어울리는 여행지를 찾아보세요.
+            </p>
+            <p class="auth-info-desc">
+              추천받은 장소는 여행 계획으로 연결하고,<br />
+              여행 후에는 원본 이미지와 실제 방문 이미지를<br />
+              함께 기록할 수 있어요.
+            </p>
+
+            <div class="auth-features">
+              <div class="auth-feature-item">
+                <span class="auth-feature-name">이미지 검색 기록 저장:</span>
+                <span class="auth-feature-desc">업로드한 사진과 분석 결과를 다시 확인할 수 있어요.</span>
+              </div>
+              <div class="auth-feature-item">
+                <span class="auth-feature-name">추천 장소 저장:</span>
+                <span class="auth-feature-desc">마음에 드는 여행지를 저장할 수 있어요.</span>
+              </div>
+              <div class="auth-feature-item">
+                <span class="auth-feature-name">여행 계획 생성:</span>
+                <span class="auth-feature-desc">추천 장소를 일정과 동선으로 연결할 수 있어요.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 우: 회원가입 폼 -->
+          <div class="auth-form-panel">
+            <h1 class="auth-form-title">회원 가입</h1>
+            <p class="auth-form-subtitle">
+              이미지로 시작하는 여행 탐색,<br />
+              PicTrip에서 시작해보세요.
+            </p>
+
+            <form id="signup-form" class="auth-form" novalidate>
+              <div class="form-group">
+                <label class="form-label" for="email">이메일</label>
+                <input
+                  id="email"
+                  class="form-input"
+                  type="email"
+                  placeholder="이메일을 입력하세요"
+                  required
+                  autocomplete="email"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="nickname">닉네임</label>
+                <input
+                  id="nickname"
+                  class="form-input"
+                  type="text"
+                  placeholder="닉네임을 입력하세요"
+                  required
+                  autocomplete="nickname"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="password">비밀번호</label>
+                <input
+                  id="password"
+                  class="form-input"
+                  type="password"
+                  placeholder="8자 이상 입력하세요"
+                  required
+                  autocomplete="new-password"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="password-confirm">비밀번호 확인</label>
+                <input
+                  id="password-confirm"
+                  class="form-input"
+                  type="password"
+                  placeholder="비밀번호를 다시 입력하세요"
+                  required
+                  autocomplete="new-password"
+                />
+              </div>
+
+              <p id="message" class="auth-message"></p>
+
+              <button type="submit" class="btn-accent">회원가입</button>
+            </form>
+
+            <p class="auth-form-footer">
+              이미 계정이 있나요? <a href="/pages/login.html">로그인하기</a>
+            </p>
+          </div>
+
         </div>
-
-        <div class="form-group">
-          <label class="form-label" for="password">비밀번호</label>
-          <input
-            id="password"
-            class="form-input"
-            type="password"
-            placeholder="8자 이상 입력하세요"
-            required
-            autocomplete="new-password"
-          />
-        </div>
-
-        <p id="message" class="auth-message"></p>
-
-        <button type="submit" class="btn-accent">회원가입</button>
-      </form>
-    </div>
-
-    <p class="auth-footer">
-      이미 계정이 있으신가요? <a href="/pages/login.html">로그인</a>
-    </p>
+      </div>
+    </main>
 
     <script src="../js/common/api.js"></script>
     <script src="../js/auth/signup.js"></script>
