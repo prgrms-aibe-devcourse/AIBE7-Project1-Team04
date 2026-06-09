@@ -1,162 +1,365 @@
----
-name: Modern Professional Pulse
-colors:
-  surface: '#f9f9ff'
-  surface-dim: '#d3daef'
-  surface-bright: '#f9f9ff'
-  surface-container-lowest: '#ffffff'
-  surface-container-low: '#f1f3ff'
-  surface-container: '#e9edff'
-  surface-container-high: '#e1e8fd'
-  surface-container-highest: '#dce2f7'
-  on-surface: '#141b2b'
-  on-surface-variant: '#434655'
-  inverse-surface: '#293040'
-  inverse-on-surface: '#edf0ff'
-  outline: '#737686'
-  outline-variant: '#c3c6d7'
-  surface-tint: '#0053db'
-  primary: '#004ac6'
-  on-primary: '#ffffff'
-  primary-container: '#2563eb'
-  on-primary-container: '#eeefff'
-  inverse-primary: '#b4c5ff'
-  secondary: '#ae3025'
-  on-secondary: '#ffffff'
-  secondary-container: '#fc6958'
-  on-secondary-container: '#690002'
-  tertiary: '#4c5660'
-  on-tertiary: '#ffffff'
-  tertiary-container: '#646e78'
-  on-tertiary-container: '#e7f1fd'
-  error: '#ba1a1a'
-  on-error: '#ffffff'
-  error-container: '#ffdad6'
-  on-error-container: '#93000a'
-  primary-fixed: '#dbe1ff'
-  primary-fixed-dim: '#b4c5ff'
-  on-primary-fixed: '#00174b'
-  on-primary-fixed-variant: '#003ea8'
-  secondary-fixed: '#ffdad5'
-  secondary-fixed-dim: '#ffb4a9'
-  on-secondary-fixed: '#410001'
-  on-secondary-fixed-variant: '#8c1711'
-  tertiary-fixed: '#dae4ef'
-  tertiary-fixed-dim: '#bdc8d3'
-  on-tertiary-fixed: '#131d25'
-  on-tertiary-fixed-variant: '#3e4851'
-  background: '#f9f9ff'
-  on-background: '#141b2b'
-  surface-variant: '#dce2f7'
-typography:
-  headline-lg:
-    fontFamily: Montserrat
-    fontSize: 32px
-    fontWeight: '700'
-    lineHeight: 40px
-    letterSpacing: -0.02em
-  headline-lg-mobile:
-    fontFamily: Montserrat
-    fontSize: 24px
-    fontWeight: '700'
-    lineHeight: 32px
-    letterSpacing: -0.01em
-  headline-md:
-    fontFamily: Montserrat
-    fontSize: 24px
-    fontWeight: '600'
-    lineHeight: 32px
-  headline-sm:
-    fontFamily: Montserrat
-    fontSize: 20px
-    fontWeight: '600'
-    lineHeight: 28px
-  body-lg:
-    fontFamily: Montserrat
-    fontSize: 18px
-    fontWeight: '400'
-    lineHeight: 28px
-  body-md:
-    fontFamily: Montserrat
-    fontSize: 16px
-    fontWeight: '400'
-    lineHeight: 24px
-  body-sm:
-    fontFamily: Montserrat
-    fontSize: 14px
-    fontWeight: '400'
-    lineHeight: 20px
-  label-md:
-    fontFamily: Montserrat
-    fontSize: 12px
-    fontWeight: '600'
-    lineHeight: 16px
-    letterSpacing: 0.05em
-rounded:
-  sm: 0.25rem
-  DEFAULT: 0.5rem
-  md: 0.75rem
-  lg: 1rem
-  xl: 1.5rem
-  full: 9999px
-spacing:
-  base: 8px
-  xs: 4px
-  sm: 12px
-  md: 16px
-  lg: 24px
-  xl: 32px
-  container-max: 1200px
-  gutter: 24px
+# DESIGN.md
+
+## 디자인 방향
+
+여행 웹 서비스.
+밝고 깔끔하게.
+여행 느낌은 살리고, 너무 장난스럽지 않게.
+AI 여행 플래너 느낌이라 신뢰감 있어야 함.
+
+키워드:
+
+- 여행
+- 설렘
+- 신뢰감
+- 깔끔함
+- 카드형 UI
+- AI 추천
+- 밝은 하늘색 분위기
+
 ---
 
-## Brand & Style
-The design system embodies a Corporate Modern aesthetic—balancing high-performance reliability with a vibrant, energetic edge. It is designed for professional environments that require clarity and efficiency without sacrificing personality. The primary blue signals trust and stability, while the secondary coral injects a sense of urgency and warmth, preventing the UI from feeling sterile. 
+## 폰트
 
-The overall style utilizes clean lines, ample whitespace, and subtle depth to guide the user's focus. It prioritizes functional elegance, ensuring that data-heavy interfaces remain legible and approachable.
+전체 폰트는 **Pretendard만 사용**.
 
-## Colors
-This palette is anchored by a high-contrast relationship between deep blues and clean whites. 
+```css
+body {
+  font-family:
+    "Pretendard",
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    sans-serif;
+}
+```
 
-- **Primary (#2563EB):** Used for main actions, active states, and brand recognition.
-- **Secondary (#FF6B5A):** Reserved for highlights, notifications, or call-to-action buttons that need to stand out from the primary blue.
-- **Background (#F4F8FF):** A cool, tinted white that reduces eye strain and differentiates the canvas from card elements.
-- **Surface (#FFFFFF):** Used for cards, modals, and input fields to create a clear "lift" from the background.
-- **Text Hierarchy:** Main headings and body text use #111827 for maximum readability, while secondary information uses #6B7280.
+폰트 굵기:
 
-## Typography
-Montserrat is utilized across all levels to maintain a cohesive, geometric, and modern feel. 
+- Hero 제목: `800`
+- 섹션 제목: `700`
+- 카드 제목: `600`
+- 버튼: `600`
+- 본문: `400`
+- 설명/보조 텍스트: `400`
 
-- **Headlines:** Use Bold (700) or Semi-Bold (600) weights with slight negative letter-spacing for a tight, professional look.
-- **Body:** Standardized at 16px for optimal readability. Use the "Medium Grey" (#6B7280) for longer passages of secondary text to reduce visual weight.
-- **Labels:** Small labels and captions should use a heavier weight (600) and uppercase styling to ensure they remain legible at smaller scales.
+---
 
-## Layout & Spacing
-The layout follows a strict 8px grid system to ensure mathematical harmony between elements. 
+## 색상
 
-- **Grid:** A 12-column fluid grid is preferred for desktop, transitioning to 4 columns for mobile.
-- **Margins:** Standard page margins are set to 24px (lg) on mobile and scale up to 48px or auto-centering on large displays.
-- **Sectioning:** Use the XL (32px) spacing unit to separate major content blocks, and the MD (16px) unit for internal component padding.
+```css
+:root {
+  --color-primary: #2563eb;
+  --color-secondary: #ff6b5a;
 
-## Elevation & Depth
-This design system uses a "Tonal Layering" approach combined with soft ambient shadows. 
+  --color-bg: #f4f8ff;
+  --color-card: #ffffff;
 
-- **Level 0 (Background):** #F4F8FF. Flat.
-- **Level 1 (Cards/Surface):** #FFFFFF. Use a very soft, diffused shadow: `0 4px 20px rgba(37, 99, 235, 0.04)`. Note the subtle blue tint in the shadow to harmonize with the primary brand color.
-- **Level 2 (Modals/Popovers):** #FFFFFF. High elevation shadow: `0 12px 32px rgba(17, 24, 39, 0.08)`.
-- **Interactions:** On hover, cards should slightly lift (increase shadow spread) rather than change color, maintaining the integrity of the white surface.
+  --color-text: #111827;
+  --color-subtext: #6b7280;
+  --color-border: #dde7f3;
 
-## Shapes
-Following the "ROUND_EIGHT" (8px) principle, the design system utilizes a balanced corner radius that feels friendly but remains structured.
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+}
+```
 
-- **Standard (8px):** Buttons, Input Fields, and Cards.
-- **Large (16px):** Modals and large promotional banners.
-- **Small (4px):** Checkboxes, tags, and internal nested elements.
+사용 규칙:
 
-## Components
-- **Buttons:** Primary buttons use a solid #2563EB fill with white text. Secondary buttons use #FF6B5A to draw attention to alternative actions. Ghost buttons use the Primary color for text and a #DDE7F3 border.
-- **Input Fields:** Use #FFFFFF background with a #DDE7F3 border. On focus, the border transitions to #2563EB with a 2px thickness.
-- **Cards:** White backgrounds with an 8px corner radius and Level 1 elevation. Padding should be a consistent 24px (lg).
-- **Chips/Tags:** Small 4px rounded corners. Use a light tint of the primary color (e.g., 10% opacity) for the background and the full primary hex for the text.
-- **Lists:** Separated by thin 1px horizontal lines using the Border color (#DDE7F3).
-- **Navigation:** Top navigation bars should be white with a subtle bottom border (#DDE7F3) rather than a shadow to keep the header feeling "anchored" rather than "floating."
+- `#2563EB`: 메인 버튼, 링크, 선택 상태
+- `#FF6B5A`: CTA, 추천 태그, 강조 버튼
+- `#F4F8FF`: 전체 배경
+- `#FFFFFF`: 카드, 입력창, 모달
+- `#111827`: 주요 텍스트
+- `#6B7280`: 설명 텍스트
+- `#DDE7F3`: 테두리, 구분선
+
+---
+
+## 기본 스타일
+
+```css
+:root {
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-card: 0 8px 24px rgba(17, 24, 39, 0.08);
+  --shadow-hover: 0 12px 32px rgba(17, 24, 39, 0.12);
+}
+```
+
+전체 느낌:
+
+- 배경은 연한 하늘색
+- 카드는 흰색
+- 모서리는 둥글게
+- 그림자는 약하게
+- 여백은 넉넉하게
+
+---
+
+## 레이아웃
+
+기본 구조:
+
+```text
+Header
+Hero Section
+Search / Planner Card
+Popular Destination Cards
+AI Recommendation Section
+CTA Banner
+Footer
+```
+
+기본 컨테이너:
+
+```css
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+```
+
+모바일:
+
+```css
+@media (max-width: 768px) {
+  .container {
+    padding: 0 16px;
+  }
+}
+```
+
+---
+
+## Header
+
+구성:
+
+- 로고
+- 메뉴
+- 로그인 / 회원가입 / 프로필
+
+스타일:
+
+- 배경 흰색
+- 높이 `72px`
+- 하단 border 사용
+- 활성 메뉴는 Primary Blue
+
+```css
+.header {
+  height: 72px;
+  background: var(--color-card);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nav-link.active {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+```
+
+---
+
+## Hero
+
+역할:
+
+- 첫인상 담당
+- 여행 이미지 사용
+- 큰 문구 + CTA 버튼 배치
+
+예시 문구:
+
+```text
+새로운 여행,
+설레는 순간
+
+AI가 나에게 맞는 여행 일정을 추천해드려요.
+```
+
+규칙:
+
+- 밝은 여행 이미지 사용
+- 텍스트 잘 보이게 그라데이션 추가
+- 메인 버튼은 Primary Blue
+
+---
+
+## Button
+
+Primary Button:
+
+```css
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 14px 22px;
+  font-weight: 600;
+}
+```
+
+Accent Button:
+
+```css
+.btn-accent {
+  background: var(--color-secondary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 14px 22px;
+  font-weight: 600;
+}
+```
+
+사용 규칙:
+
+- Primary: 검색, 저장, 일정 생성
+- Accent: 회원가입, 추천 확인, 강한 CTA
+- Coral 남발 금지
+
+---
+
+## Card
+
+```css
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+```
+
+Hover:
+
+```css
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
+}
+```
+
+사용 위치:
+
+- 여행지 카드
+- 추천 일정 카드
+- AI 결과 카드
+- 검색 카드
+
+---
+
+## Input
+
+```css
+.input {
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--color-text);
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+```
+
+---
+
+## Badge
+
+```css
+.badge {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+```
+
+종류:
+
+- BEST: 파란색
+- 추천: 코랄색
+- 인기: 연한 파란색
+- NEW: 코랄 outline
+
+---
+
+## 이미지
+
+Hero 이미지:
+
+- 밝은 여행지
+- 하늘, 바다, 도시, 자연
+- 너무 어두운 이미지 금지
+
+카드 이미지:
+
+- 비율 통일
+- `object-fit: cover`
+- 둥근 카드 안에 자연스럽게 배치
+
+---
+
+## 반응형
+
+Desktop:
+
+- 여행지 카드 4열
+- 검색 폼 가로 배치
+
+Tablet:
+
+- 여행지 카드 2열
+
+Mobile:
+
+- 여행지 카드 1열
+- 검색 폼 세로 배치
+- Header 메뉴는 햄버거 처리
+
+---
+
+## 금지사항
+
+하지 말 것:
+
+- 폰트 여러 개 섞기
+- 색상 많이 추가하기
+- Coral 너무 많이 쓰기
+- 그림자 진하게 쓰기
+- 배경 완전 흰색만 쓰기
+- 카드 모서리 제각각 쓰기
+- 어두운 여행 이미지 쓰기
+
+---
+
+## 최종 느낌
+
+```text
+밝은 하늘색 배경
++ 흰색 카드
++ 파란색 메인 버튼
++ 코랄 포인트
++ Pretendard 단독
++ 둥글고 깔끔한 UI
+```
+  
+한 줄 요약:
+
+```text
+여행의 설렘은 살리고, AI 서비스의 신뢰감은 유지하는 디자인.
+```
