@@ -6,6 +6,7 @@ require("dotenv").config();
 const authRoutes = require("./routes/authRoutes");
 const imageAnalyzeRoutes = require("./routes/imageAnalyzeRoutes");
 const itineraryRoutes = require("./routes/itineraryRoutes");
+const tripsRoutes = require("./routes/tripsRoutes");
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use(express.static(path.join(__dirname, "../public")));
 app.use("/api/auth", authRoutes);
 app.use("/api", imageAnalyzeRoutes);
 app.use("/api/itineraries", itineraryRoutes);
+app.use("/api/trips", tripsRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
