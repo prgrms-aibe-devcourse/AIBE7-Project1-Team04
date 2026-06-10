@@ -68,16 +68,79 @@
 
     <!-- ═══════════ HERO ═══════════ -->
     <section class="hero">
-      <h1 class="hero-title" id="heroTitle">
-        사진 한 장으로<br>여행지를 찾아보세요
-      </h1>
-      <p class="hero-desc" id="heroDesc">
-        장소명을 몰라도 괜찮아요.<br>
-        사진 속 분위기와 장소 특징을 분석해<br>
-        어울리는 여행지와 여행 계획을 추천해드려요
-      </p>
-      <div class="hero-btns" id="heroBtns">
-        <!-- JS가 로그인 상태에 따라 채움 -->
+      <div class="hero-inner">
+
+        <!-- 텍스트 + CTA -->
+        <div class="hero-content">
+          <div class="hero-badge">
+            <span class="hero-badge-pulse"></span>
+            AI 기반 여행 추천
+          </div>
+          <h1 class="hero-title" id="heroTitle">
+            사진 한 장으로<br>여행지를 찾아보세요
+          </h1>
+          <p class="hero-desc" id="heroDesc">
+            장소명을 몰라도 괜찮아요.<br>
+            사진 속 분위기와 장소 특징을 분석해<br>
+            어울리는 여행지와 여행 계획을 추천해드려요
+          </p>
+          <div class="hero-btns" id="heroBtns">
+            <!-- JS가 로그인 상태에 따라 채움 -->
+          </div>
+        </div>
+
+        <!-- 앱 목업 일러스트 -->
+        <div class="hero-visual" aria-hidden="true">
+          <div class="mockup-wrap">
+            <div class="mockup-card">
+              <!-- 사진 영역 (CSS 그라데이션 풍경) -->
+              <div class="mockup-img">
+                <div class="mockup-img-label">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  사진 업로드
+                </div>
+              </div>
+              <!-- AI 분석 표시 -->
+              <div class="mockup-ai-row">
+                <span class="mockup-ai-dot"></span>
+                <span class="mockup-ai-text">AI가 분석하고 있어요</span>
+                <div class="mockup-ai-bars">
+                  <span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+              <!-- 추천 결과 카드 -->
+              <div class="mockup-places">
+                <div class="mockup-place">
+                  <div class="mockup-place-thumb" style="background:linear-gradient(135deg,#93c5fd,#2563eb)"></div>
+                  <div class="mockup-place-info">
+                    <p class="mockup-place-name">제주도 성산일출봉</p>
+                    <p class="mockup-place-sub">자연 · 4일 일정</p>
+                  </div>
+                  <span class="mockup-recommend-badge">추천</span>
+                </div>
+                <div class="mockup-place">
+                  <div class="mockup-place-thumb" style="background:linear-gradient(135deg,#fca5a5,#ff6b5a)"></div>
+                  <div class="mockup-place-info">
+                    <p class="mockup-place-name">강릉 경포 해변</p>
+                    <p class="mockup-place-sub">바다 · 2일 일정</p>
+                  </div>
+                </div>
+                <div class="mockup-place">
+                  <div class="mockup-place-thumb" style="background:linear-gradient(135deg,#6ee7b7,#10b981)"></div>
+                  <div class="mockup-place-info">
+                    <p class="mockup-place-name">전주 한옥마을</p>
+                    <p class="mockup-place-sub">문화 · 1일 일정</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 부유 통계 배지 -->
+            <div class="mockup-stat">
+              <strong>3,200+</strong> 여행지 분석
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -142,75 +205,61 @@
 
           <div class="review-card">
             <div class="review-stars">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
             </div>
-            <p class="review-title">Review title</p>
-            <p class="review-body">Review body</p>
+            <p class="review-title">막연한 여행 계획이 구체적으로</p>
+            <p class="review-body">SNS에서 저장해둔 사진을 올렸더니 비슷한 분위기의 국내 여행지를 바로 추천해줬어요. 일정까지 자동으로 짜줘서 정말 편했어요.</p>
             <div class="review-author">
-              <div class="review-avatar"></div>
+              <div class="review-avatar" style="background:linear-gradient(135deg,#93c5fd,#2563eb)"></div>
               <div>
-                <p class="review-author-name">Reviewer name</p>
-                <p class="review-author-date">Date</p>
+                <p class="review-author-name">김지수</p>
+                <p class="review-author-date">2025년 5월</p>
               </div>
             </div>
           </div>
 
           <div class="review-card">
             <div class="review-stars">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
             </div>
-            <p class="review-title">Review title</p>
-            <p class="review-body">Review body</p>
+            <p class="review-title">장소 이름 몰라도 OK</p>
+            <p class="review-body">해외에서 찍은 분위기 있는 사진을 올렸는데, 비슷한 국내 여행지 3곳을 추천해줬어요. 그 중 하나 골라서 일정 만들고 다녀왔는데 너무 좋았어요.</p>
             <div class="review-author">
-              <div class="review-avatar"></div>
+              <div class="review-avatar" style="background:linear-gradient(135deg,#fca5a5,#ff6b5a)"></div>
               <div>
-                <p class="review-author-name">Reviewer name</p>
-                <p class="review-author-date">Date</p>
+                <p class="review-author-name">박현우</p>
+                <p class="review-author-date">2025년 4월</p>
               </div>
             </div>
           </div>
 
           <div class="review-card">
             <div class="review-stars">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
             </div>
-            <p class="review-title">Review title</p>
-            <p class="review-body">Review body</p>
+            <p class="review-title">AI가 이렇게 잘 맞출 줄이야</p>
+            <p class="review-body">조용하고 자연 느낌 나는 여행지 사진을 올렸는데, 제주도 올레길 코스를 추천해줬어요. 덕분에 힐링하고 왔습니다.</p>
             <div class="review-author">
-              <div class="review-avatar"></div>
+              <div class="review-avatar" style="background:linear-gradient(135deg,#6ee7b7,#10b981)"></div>
               <div>
-                <p class="review-author-name">Reviewer name</p>
-                <p class="review-author-date">Date</p>
+                <p class="review-author-name">이소영</p>
+                <p class="review-author-date">2025년 6월</p>
               </div>
             </div>
           </div>
 
-        </div>
-      </div>
-    </section>
-
-
-    <!-- ═══════════ RECENT TRIPS (로그인 후) ═══════════ -->
-    <section class="section hidden" id="tripsSection">
-      <div class="container">
-        <div class="section-row">
-          <h2 class="section-title" style="margin-bottom:0;">최근 여행 일정</h2>
-          <a href="/pages/my-trips.html" class="section-row-link">전체 보기 →</a>
-        </div>
-        <div class="trips-grid" id="tripsGrid">
-          <div class="trips-empty-main">불러오는 중...</div>
         </div>
       </div>
     </section>
