@@ -22,3 +22,16 @@ async function requestApi(url, options = {}) {
 
   return data;
 }
+
+export async function requestItinerary(payload) {
+  const data = await requestApi("/api/itineraries/generate", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  if (!data.ok) {
+    throw new Error(data.message || "일정 생성 요청에 실패했습니다.");
+  }
+
+  return data.itinerary;
+}

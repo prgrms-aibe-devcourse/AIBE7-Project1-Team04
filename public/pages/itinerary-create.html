@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PicTrip | 여행 일정 생성</title>
+  </head>
+  <body>
+    <!-- 여행 조건 입력 영역 -->
+    <section class="planner-shell" aria-label="여행 일정 생성 조건 입력 영역">
+      <form class="planner-form" id="plannerForm">
+        <div class="form-header">
+          <div>
+            <h2>여행 조건 입력</h2>
+          </div>
+        </div>
+
+        <!-- 이미지 분석에서 전달받은 키워드가 적용되는 부분 -->
+        <!-- 현재는 input으로 받지만, 나중에는 전달받은 결과를 출력하기만 하는 파트로 변경 -->
+        <div class="field field--full">
+          <label for="keyword">키워드</label>
+          <input
+            id="keyword"
+            name="keyword"
+            type="text"
+            placeholder="예시: 제주도, 노을지는 해변, 포켓몬스터"
+            required
+          />
+        </div>
+
+        <!-- 목적지, 출발지 입력 -->
+        <div class="field-group">
+          <div class="field">
+            <label for="destination">목적지</label>
+            <input
+              id="destination"
+              name="destination"
+              type="text"
+              placeholder="비워두면 AI가 추천"
+            />
+          </div>
+          <div class="field">
+            <label for="departure">출발지</label>
+            <input
+              id="departure"
+              name="departure"
+              type="text"
+              placeholder="예시: 서울, 대전"
+            />
+          </div>
+        </div>
+
+        <!-- 여행 기간, 인원 입력 -->
+        <!-- 여행 기간은 X박 X일의 형태로 입력 받는 것이 나을 수도 있음 -->
+        <!-- 추후 형태 변화에 따라 js 코드도 같이 수정 필요 -->
+        <div class="field-group">
+          <div class="field">
+            <label for="days">여행 기간</label>
+            <select id="days" name="days">
+              <option value="1">당일치기</option>
+              <option value="2">1박 2일</option>
+              <option value="3" selected>2박 3일</option>
+              <option value="4">3박 4일</option>
+              <option value="5">4박 5일</option>
+              <option value="6">5박 6일</option>
+              <option value="7">6박 7일</option>
+              <option value="8">7박 8일</option>
+              <option value="9">8박 9일</option>
+              <option value="10">9박 10일</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="people">인원</label>
+            <input
+              id="people"
+              name="people"
+              type="number"
+              min="1"
+              max="20"
+              value="2"
+            />
+          </div>
+        </div>
+
+        <!-- 예산, AI Provider 입력 -->
+        <div class="field-group">
+          <div class="field">
+            <label for="budget">예산</label>
+            <input
+              id="budget"
+              name="budget"
+              type="text"
+              placeholder="예: 1인 80만원, 전체 200만원"
+            />
+          </div>
+          <div class="field">
+            <label for="provider">AI Provider</label>
+            <select id="provider" name="provider">
+              <option value="gemini">Gemini</option>
+              <option value="groq">Groq</option>
+              <option value="nim">NVIDIA NIM</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 여행 스타일 입력 -->
+        <!-- 키워드가 여정에 포함된 여행은 키워드를 여행 일정 중 방문하는 하나의 장소로 선택 -->
+        <!-- 키워드를 주제로 하는 여행은 키워드를 주제로 체험할 수 있는 테마 여행 또는 장소를 중심으로 구성된 여행 -->
+        <fieldset class="style-field">
+          <legend>여행 스타일</legend>
+          <label>
+            <input
+              type="radio"
+              name="style"
+              value="키워드가 여정에 포함된 여행"
+              checked
+            />
+            <span>키워드가 여정에 포함된 여행</span>
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="style"
+              value="키워드를 주제로 하는 여행"
+            />
+            <span>키워드를 주제로 하는 여행</span>
+          </label>
+        </fieldset>
+
+        <!-- 추가 조건 입력 -->
+        <div class="field field--full">
+          <label for="notes">추가 조건</label>
+          <textarea
+            id="notes"
+            name="notes"
+            rows="3"
+            placeholder="예: 부모님과 함께, 걷는 거리 적게, 카페 많이, 야경 포함"
+          ></textarea>
+        </div>
+
+        <!-- 생성 버튼 -->
+        <button class="primary-button" type="submit" id="generateButton">
+          <span>여행 일정 생성</span>
+          <span aria-hidden="true">→</span>
+        </button>
+      </form>
+    </section>
+
+    <script type="module" src="../js/pages/itinerary-create.js"></script>
+  </body>
+</html>
