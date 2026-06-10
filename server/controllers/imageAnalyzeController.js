@@ -45,7 +45,7 @@ const recommendationParser = StructuredOutputParser.fromZodSchema(
     spots: z.array(
       z.object({
         name: z.string(),
-        country: z.string().optional().default(""),
+        region: z.string(),
         reason: z.string(),
       }),
     ),
@@ -189,7 +189,7 @@ async function recommendTravelPlace(prompt) {
       spots: [
         {
           name: "추천 여행지",
-          country: "",
+          region: "대한민국",
           reason: "추천 결과를 생성하지 못해 기본 응답을 반환했습니다.",
         },
       ],
@@ -201,8 +201,8 @@ function fallbackRecommendation(region = "알 수 없음") {
   return {
     spots: [
       {
-        name: region,
-        country: "",
+        name: "추천 여행지",
+        region,
         reason: "기본 추천 정보를 반환했습니다.",
       },
     ],
@@ -233,13 +233,27 @@ async function findLocation(req, res, next) {
 
 이 위치를 기준으로 한국 여행지 3곳을 추천해 주세요.
 
+⚠️ 중요 규칙:
+- 반드시 "관광지 / 명소 / 핫플레이스" 단위로만 추천
+- 절대 "경상남도, 통영시, 남해군, 서울시 같은 행정구역 자체를 추천하지 말 것"
+- 반드시 실제 방문 가능한 장소 이름만 사용
+- 자연/건물/명소/카페/해변/테마파크 등 구체적인 장소만 허용
+- name에는 관광지 이름만 작성
+- region에는 해당 관광지가 위치한 시/군/구 또는 대표 지역명을 작성
+- region은 좌표 검색에 사용할 수 있도록 최대한 구체적으로 작성
+- 예시:
+  - name: "동피랑 벽화마을"
+  - region: "경상남도 통영시"
+  - name: "미륵산 케이블카"
+  - region: "경상남도 통영시"
+
 반드시 JSON만 반환
 
 {
   "spots": [
     {
       "name": "",
-      "country": "",
+      "region": "",
       "reason": ""
     }
   ]
@@ -297,9 +311,31 @@ ${safeLocation.longitude}
 
 이 지역과 어울리는 한국 여행지 3곳을 추천해 주세요.
 
+⚠️ 중요 규칙:
+- 반드시 "관광지 / 명소 / 핫플레이스" 단위로만 추천
+- 절대 "경상남도, 통영시, 남해군, 서울시 같은 행정구역 자체를 추천하지 말 것"
+- 반드시 실제 방문 가능한 장소 이름만 사용
+- 자연/건물/명소/카페/해변/테마파크 등 구체적인 장소만 허용
+- name에는 관광지 이름만 작성
+- region에는 해당 관광지가 위치한 시/군/구 또는 대표 지역명을 작성
+- region은 좌표 검색에 사용할 수 있도록 최대한 구체적으로 작성
+- 예시:
+  - name: "동피랑 벽화마을"
+  - region: "경상남도 통영시"
+  - name: "미륵산 케이블카"
+  - region: "경상남도 통영시"
+
 반드시 JSON만 반환
 
-{ "spots": [ { "name": "", "reason": "" } ] }
+{
+  "spots": [
+    {
+      "name": "",
+      "region": "",
+      "reason": ""
+    }
+  ]
+}
 `);
 
     return res.json({
@@ -347,19 +383,33 @@ ${extra || "(없음)"}
 
 이 분위기와 조건에 맞는 한국 여행지 3곳을 추천해 주세요.
 
+⚠️ 중요 규칙:
+- 반드시 "관광지 / 명소 / 핫플레이스" 단위로만 추천
+- 절대 "경상남도, 통영시, 남해군, 서울시 같은 행정구역 자체를 추천하지 말 것"
+- 반드시 실제 방문 가능한 장소 이름만 사용
+- 자연/건물/명소/카페/해변/테마파크 등 구체적인 장소만 허용
+- name에는 관광지 이름만 작성
+- region에는 해당 관광지가 위치한 시/군/구 또는 대표 지역명을 작성
+- region은 좌표 검색에 사용할 수 있도록 최대한 구체적으로 작성
+- 예시:
+  - name: "동피랑 벽화마을"
+  - region: "경상남도 통영시"
+  - name: "미륵산 케이블카"
+  - region: "경상남도 통영시"
+
 반드시 JSON만 반환
 
 {
   "spots": [
     {
       "name": "",
-      "country": "",
+      "region": "",
       "reason": ""
     }
   ]
 }
 `);
-
+    console.log(recommendation);
     return res.json({
       moodTags,
       recommendation,
