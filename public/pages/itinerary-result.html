@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PicTrip | 여행 일정 생성 결과</title>
+    <meta
+      name="description"
+      content="AI가 생성한 맞춤 여행 일정을 확인하고 저장할 수 있습니다."
+    />
+    <link rel="stylesheet" href="./css/itinerary-style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="PicTrip 홈으로 이동">
+        <span class="brand__logo">T</span>
+        <span>TRIP AI 맞춤일정</span>
+      </a>
+      <button
+        class="icon-button"
+        type="button"
+        id="shareButton"
+        aria-label="현재 일정 공유하기"
+      >
+        ↗
+      </button>
+    </header>
+
+    <main>
+      <nav class="page-progress" aria-label="일정 생성 단계">
+        <span class="page-progress__item is-done">1 조건 입력</span>
+        <span class="page-progress__line is-done"></span>
+        <span class="page-progress__item is-done">2 AI 생성</span>
+        <span class="page-progress__line is-done"></span>
+        <span class="page-progress__item is-active">3 결과 확인</span>
+      </nav>
+
+      <div class="result-toolbar" aria-label="결과 페이지 작업">
+        <a
+          class="ghost-button result-toolbar__button"
+          href="/pages/itinerary-create.html"
+          >조건 새로 입력</a
+        >
+        <a
+          class="secondary-button result-toolbar__button"
+          href="/pages/itinerary-loading.html"
+          id="retryButton"
+          >같은 조건으로 다시 생성</a
+        >
+      </div>
+
+      <section class="result" aria-live="polite">
+        <div id="resultContainer"></div>
+      </section>
+    </main>
+
+    <template id="emptyImageTemplate">
+      <div class="card-thumb card-thumb--placeholder" aria-hidden="true">⌁</div>
+    </template>
+
+    <script type="module" src="/js/pages/itinerary-result.js"></script>
+  </body>
+</html>
