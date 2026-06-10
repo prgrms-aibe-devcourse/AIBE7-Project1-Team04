@@ -8,6 +8,7 @@ const DOT_COLORS = ["#8e5cff", "#ff5c68", "#22c7b8", "#2f86ff"];
 const resultContainer = document.querySelector("#resultContainer");
 const shareButton = document.querySelector("#shareButton");
 const retryButton = document.querySelector("#retryButton");
+const saveButton = document.querySelector("#saveButton");
 
 const payload = loadPayload();
 const itinerary = loadItinerary();
@@ -69,6 +70,61 @@ function bindCommonEvents() {
   });
 
   shareButton?.addEventListener("click", handleShare);
+  saveButton?.addEventListener("click", handleSaveToAccount);
+}
+
+async function handleSaveToAccount() {
+  const session = JSON.parse(localStorage.getItem('session') || 'null');
+  if (!session?.access_token) {
+    showToast('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
+    setTimeout(() => { window.location.href = '/pages/login.html'; }, 1500);
+    return;
+  }
+
+  if (!itinerary) {
+    showToast('저장할 일정이 없습니다.');
+    return;
+  }
+
+  if (saveButton) {
+    saveButton.disabled = true;
+    saveButton.textContent = '저장 중...';
+  }
+
+  try {
+    const response = await fetch('/api/trips', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        title: itinerary.headline || `${payload?.keyword || '여행'} 일정`,
+        payload: payload || {},
+        itinerary,
+      }),
+    });
+
+    if (response.ok) {
+      showToast('일정이 저장되었습니다! 내 여행 목록에서 확인하세요.');
+      if (saveButton) {
+        saveButton.textContent = '저장됨 ✓';
+      }
+    } else {
+      const data = await response.json().catch(() => ({}));
+      showToast(data.message || '저장에 실패했습니다.');
+      if (saveButton) {
+        saveButton.disabled = false;
+        saveButton.textContent = '내 계정에 저장';
+      }
+    }
+  } catch (_err) {
+    showToast('저장 중 오류가 발생했습니다.');
+    if (saveButton) {
+      saveButton.disabled = false;
+      saveButton.textContent = '내 계정에 저장';
+    }
+  }
 }
 
 async function handleShare() {
