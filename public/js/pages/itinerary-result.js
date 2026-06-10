@@ -100,7 +100,7 @@ function renderItinerary({ container, itinerary, onRegenerate }) {
 
   screen.append(
     createResultHero(itinerary),
-    createMapStrip(itinerary),
+    createKakaoMapSection(itinerary),
     createDayTabs(itinerary),
     createTimeline(itinerary),
     createTipsBox(itinerary),
@@ -109,6 +109,7 @@ function renderItinerary({ container, itinerary, onRegenerate }) {
 
   container.append(screen);
   bindDayTabs(screen);
+  initKakaoMap(itinerary, screen);
 }
 
 function createResultHero(itinerary) {
@@ -171,6 +172,215 @@ function createMapStrip(itinerary) {
   return map;
 }
 
+let kakaoMapInstance = null;
+let kakaoMarkers = [];
+let kakaoPolyline = null;
+
+function createKakaoMapSection(itinerary) {
+  const section = document.createElement("section");
+  section.className = "kakao-map-section";
+
+  section.innerHTML = `
+    <div class="kakao-map-header">
+      <div>
+        <h3>추천 동선 지도</h3>
+        <p>일정 카드와 지도 마커를 함께 확인해보세요.</p>
+      </div>
+      <span class="kakao-map-label">
+        ${escapeHtml(itinerary.mapLabel || "추천 코스")}
+      </span>
+    </div>
+    <div id="itineraryKakaoMap" class="itinerary-kakao-map" aria-label="추천 일정 지도"></div>
+  `;
+
+  return section;
+}
+
+function initKakaoMap(itinerary, screen) {
+  const mapContainer = screen.querySelector("#itineraryKakaoMap");
+  if (!mapContainer) return;
+
+  if (!window.kakao?.maps) {
+    mapContainer.innerHTML = `
+      <div class="map-error">
+        카카오맵 SDK를 불러오지 못했습니다. API 키와 script 경로를 확인해 주세요.
+      </div>
+    `;
+    return;
+  }
+
+  window.kakao.maps.load(() => {
+    renderKakaoMap(itinerary, mapContainer, screen);
+  });
+}
+
+function renderKakaoMap(itinerary, mapContainer, screen) {
+  const points = getMapPoints(itinerary);
+
+  const centerPoint = points[0] || getFallbackCenter(itinerary);
+
+  const center = new kakao.maps.LatLng(centerPoint.lat, centerPoint.lng);
+
+  const map = new kakao.maps.Map(mapContainer, {
+    center,
+    level: points.length > 1 ? 7 : 5,
+  });
+
+  kakaoMapInstance = map;
+  kakaoMarkers = [];
+
+  const bounds = new kakao.maps.LatLngBounds();
+  const path = [];
+
+  points.forEach((point, index) => {
+    const position = new kakao.maps.LatLng(point.lat, point.lng);
+
+    bounds.extend(position);
+    path.push(position);
+
+    const marker = new kakao.maps.Marker({
+      map,
+      position,
+      title: point.placeName,
+    });
+
+    const infoWindow = new kakao.maps.InfoWindow({
+      content: `
+        <div class="map-info-window">
+          <strong>${escapeHtml(point.orderLabel)}</strong>
+          <span>${escapeHtml(point.placeName)}</span>
+        </div>
+      `,
+    });
+
+    kakao.maps.event.addListener(marker, "click", () => {
+      infoWindow.open(map, marker);
+      focusTimelineItem(screen, point);
+    });
+
+    kakaoMarkers.push({
+      marker,
+      infoWindow,
+      point,
+    });
+  });
+
+  if (path.length >= 2) {
+    kakaoPolyline = new kakao.maps.Polyline({
+      map,
+      path,
+      strokeWeight: 4,
+      strokeColor: "#2f86ff",
+      strokeOpacity: 0.85,
+      strokeStyle: "solid",
+    });
+  }
+
+  if (points.length >= 2) {
+    map.setBounds(bounds);
+  }
+
+  bindTimelineMapLinks(screen, map);
+}
+
+function getMapPoints(itinerary) {
+  const days = Array.isArray(itinerary.days) ? itinerary.days : [];
+
+  return days.flatMap((day) => {
+    const items = Array.isArray(day.items) ? day.items : [];
+
+    return items
+      .map((item, index) => {
+        const lat = Number(item.lat ?? item.latitude);
+        const lng = Number(item.lng ?? item.longitude);
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+          return null;
+        }
+
+        return {
+          day: day.day,
+          order: item.order || index + 1,
+          orderLabel: `Day ${day.day} - ${item.order || index + 1}`,
+          placeName: item.placeName || "추천 장소",
+          lat,
+          lng,
+        };
+      })
+      .filter(Boolean);
+  });
+}
+
+function getFallbackCenter(itinerary) {
+  const lat = Number(
+    itinerary.lat ??
+      itinerary.latitude ??
+      itinerary.centerLat ??
+      itinerary.mapCenter?.lat,
+  );
+
+  const lng = Number(
+    itinerary.lng ??
+      itinerary.longitude ??
+      itinerary.centerLng ??
+      itinerary.mapCenter?.lng,
+  );
+
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    return { lat, lng };
+  }
+
+  // 기본값: 제주 시청 근처
+  return {
+    lat: 33.4996213,
+    lng: 126.5311884,
+  };
+}
+
+function bindTimelineMapLinks(screen, map) {
+  const items = screen.querySelectorAll(".timeline-item");
+
+  items.forEach((item) => {
+    item.addEventListener("click", () => {
+      const day = Number(item.dataset.day);
+      const order = Number(item.dataset.order);
+
+      const matched = kakaoMarkers.find(
+        (entry) => entry.point.day === day && entry.point.order === order,
+      );
+
+      if (!matched) return;
+
+      const position = matched.marker.getPosition();
+      map.panTo(position);
+      matched.infoWindow.open(map, matched.marker);
+    });
+  });
+}
+
+function focusTimelineItem(screen, point) {
+  const target = screen.querySelector(
+    `.timeline-item[data-day="${point.day}"][data-order="${point.order}"]`,
+  );
+
+  if (!target) return;
+
+  target.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+  });
+
+  screen.querySelectorAll(".timeline-item.is-focused").forEach((item) => {
+    item.classList.remove("is-focused");
+  });
+
+  target.classList.add("is-focused");
+
+  window.setTimeout(() => {
+    target.classList.remove("is-focused");
+  }, 1800);
+}
+
 function createDayTabs(itinerary) {
   const tabs = document.createElement("div");
   tabs.className = "day-tabs";
@@ -228,7 +438,7 @@ function createTimeline(itinerary) {
     const items = Array.isArray(day.items) ? day.items : [];
 
     items.forEach((item, itemIndex) => {
-      list.append(createTimelineItem(item, itemIndex));
+      list.append(createTimelineItem(item, itemIndex, dayNumber));
     });
 
     panel.append(title, list);
@@ -238,11 +448,15 @@ function createTimeline(itinerary) {
   return wrapper;
 }
 
-function createTimelineItem(item, index) {
+function createTimelineItem(item, index, dayNumber) {
   const li = document.createElement("li");
   li.className = "timeline-item";
 
   const order = item.order || index + 1;
+  
+  li.dataset.day = String(dayNumber);
+  li.dataset.order = String(item.order || index + 1);
+
   const meta = [item.category, item.area].filter(Boolean).join(" · ");
   const chips = [item.duration, item.budgetHint].filter(Boolean);
 

@@ -29,7 +29,6 @@ function restorePreviousPayload() {
   setFieldValue("days", payload.days);
   setFieldValue("people", payload.people);
   setFieldValue("budget", payload.budget);
-  setFieldValue("style", payload.style);
   setFieldValue("notes", payload.notes);
 }
 
@@ -50,7 +49,6 @@ function getPayloadFromForm() {
     people: Number(formData.get("people") || 2),
     budget: String(formData.get("budget") || "").trim(),
     provider: String(formData.get("provider") || "groq"),
-    style: String(formData.get("style") || "키워드가 여정에 포함된 여행"),
     notes: String(formData.get("notes") || "").trim(),
   };
 }
