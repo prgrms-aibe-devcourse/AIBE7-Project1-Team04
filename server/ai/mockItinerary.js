@@ -23,7 +23,7 @@ function createMockItinerary(form) {
     keyword,
     nights,
     daysCount: days,
-    summary: `${keyword} 키워드를 중심으로 ${people}명이 즐기기 좋은 ${style} 일정입니다. 이동 부담을 줄이고, 식사와 휴식이 자연스럽게 이어지도록 구성했습니다.`,
+    summary: `${keyword} 장소 정보를 중심으로 ${people}명이 즐기기 좋은 맞춤 여행 일정입니다. 이동 부담을 줄이고, 식사와 휴식이 자연스럽게 이어지도록 구성했습니다.`,
     mapLabel: `${destination} 주요 코스 ${days}일`,
     days: Array.from({ length: days }, (_, index) =>
       makeDay(index + 1, destination, {
@@ -95,7 +95,8 @@ function makeDay(day, destination, form) {
         placeName: `${destination} ${form.keyword} 스팟`,
         category: "관광명소",
         area: destination,
-        reason: `${form.keyword} 키워드가 가장 잘 드러나는 대표 장소입니다.`,
+        reason:
+          "분석된 장소 정보를 중심으로 여행 분위기를 자연스럽게 느낄 수 있는 코스입니다.",
         duration: "2시간",
         budgetHint: "입장료 확인 필요",
         imageHint: `${form.keyword} 대표 풍경`,
@@ -117,9 +118,8 @@ function makeDay(day, destination, form) {
         placeName: `${form.keyword} 감성 산책 코스`,
         category: "체험",
         area: destination,
-        reason: form.style.includes("주제")
-          ? "키워드를 하나의 테마로 느낄 수 있는 코스입니다."
-          : "키워드를 여정 안에 자연스럽게 포함했습니다.",
+        reason:
+          "분석된 장소 정보를 중심으로 여행 분위기를 자연스럽게 느낄 수 있는 코스입니다.",
         duration: "1~2시간",
         budgetHint: "무료~중간",
         imageHint: "감성 산책길",

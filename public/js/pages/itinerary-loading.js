@@ -42,7 +42,6 @@ function renderPayloadSummary(payload) {
     ["기간", `${payload.days || 3}일`],
     ["인원", `${payload.people || 2}명`],
     ["예산", payload.budget || "미정"],
-    ["스타일", payload.style || "-"],
   ];
 
   loadingSummary.innerHTML = rows
