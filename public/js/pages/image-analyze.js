@@ -202,9 +202,6 @@ async function renderKakaoMaps(spots, estimatedLocationName = null) {
   }
 }
 
-// =================================================================
-// UI 렌더링 및 마크업 시스템
-// =================================================================
 async function renderSpots(spots) {
   if (!Array.isArray(spots) || spots.length === 0) {
     return '<p class="text-secondary mb-0">추천 결과가 없습니다.</p>';

@@ -6,6 +6,7 @@ const { z } = require("zod");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { PromptTemplate } = require("@langchain/core/prompts");
 const { StructuredOutputParser } = require("@langchain/core/output_parsers");
+const { ChatGroq } = require("@langchain/groq");
 
 const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
 const gemini = new ChatGoogleGenerativeAI({
@@ -17,6 +18,12 @@ const gemini = new ChatGoogleGenerativeAI({
 const gemma = new ChatGoogleGenerativeAI({
   apiKey,
   model: "gemma-4-31b-it",
+  temperature: 0,
+});
+
+const groq = new ChatGroq({
+  apiKey: process.env.GROQ_API_KEY,
+  model: "llama-3.3-70b-versatile",
   temperature: 0,
 });
 
