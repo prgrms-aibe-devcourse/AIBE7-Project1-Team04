@@ -267,6 +267,9 @@ function createMapInfoElement(point) {
   info.className = "map-info-card";
 
   const meta = [point.category, point.area].filter(Boolean).join(" · ");
+  const addressHtml = point.address
+    ? `<p class="map-info-card__address">${escapeHtml(point.address)}</p>`
+    : "";
 
   info.innerHTML = `
     <button class="map-info-card__close" type="button" aria-label="지도 정보 닫기">
@@ -278,6 +281,7 @@ function createMapInfoElement(point) {
     <p class="map-info-card__meta">
       ${escapeHtml(meta || "추천 장소")}
     </p>
+    ${addressHtml}
     <p class="map-info-card__reason">
       ${escapeHtml(point.reason || "일정에 포함된 추천 장소입니다.")}
     </p>
@@ -418,6 +422,7 @@ function getMapPointsByDay(itinerary, dayNumber) {
         placeName: item.placeName || "추천 장소",
         category: item.category || "",
         area: item.area || "",
+        address: item.address || "",
         reason: item.reason || "",
         lat,
         lng,
