@@ -1,6 +1,6 @@
 const API_BASE_URL = "";
 
-async function requestApi(url, options = {}) {
+export async function requestApi(url, options = {}) {
   const response = await fetch(`${API_BASE_URL}${url}`, {
     headers: {
       "Content-Type": "application/json",

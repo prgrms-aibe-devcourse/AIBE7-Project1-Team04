@@ -1,3 +1,5 @@
+import { requestApi } from '../common/api.js';
+
 // ── Utilities ──
 function showFieldError(fieldId, errorId, iconId, message) {
   const input = document.getElementById(fieldId);
