@@ -10,7 +10,7 @@
     <header class="auth-nav">
       <div class="auth-nav-inner">
         <a href="/" class="auth-nav-logo">
-          <svg class="auth-nav-logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg class="auth-nav-logo-icon" viewBox="0 0 36 36" fill="none">
             <circle cx="10" cy="10" r="4.5" fill="#2563eb"/>
             <circle cx="26" cy="10" r="4.5" fill="#2563eb"/>
             <circle cx="10" cy="26" r="4.5" fill="#2563eb"/>
@@ -24,7 +24,6 @@
           </svg>
           <span class="auth-nav-logo-name">PicTrip</span>
         </a>
-
         <ul class="auth-nav-links">
           <li><a href="/">홈</a></li>
           <li><a href="#">이미지 검색</a></li>
@@ -32,7 +31,6 @@
           <li><a href="#">커뮤니티</a></li>
           <li><a href="#">마이페이지</a></li>
         </ul>
-
         <a href="/pages/login.html" class="auth-nav-btn">로그인</a>
       </div>
     </header>
@@ -43,25 +41,74 @@
 
           <!-- 좌: 서비스 소개 -->
           <div class="auth-info-panel">
-            <p class="auth-info-desc">사진 한 장으로 여행을 시작하세요.</p>
-            <p class="auth-info-desc">장소명을 몰라도 괜찮아요.</p>
-            <p class="auth-info-desc">
-              PicTrip이 이미지 속 분위기와 장소 특징을 분석해<br />
-              어울리는 여행지를 찾아드려요
-            </p>
+
+            <!-- 사진 → 여행지 매칭 미리보기 -->
+            <div class="preview-match-card">
+              <div class="preview-match-label">이런 사진을 올리면</div>
+              <div class="preview-match-row">
+                <div class="preview-photo-box preview-photo-box--sky"></div>
+                <div class="preview-match-arrow">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                    <polyline points="12 5 19 12 12 19"/>
+                  </svg>
+                </div>
+                <div class="preview-dest-box">
+                  <div class="preview-dest-name">제주 협재해변</div>
+                  <div class="preview-dest-country">제주특별자치도</div>
+                  <div class="preview-dest-tags">
+                    <span class="preview-tag-pill">#바다</span>
+                    <span class="preview-tag-pill">#힐링</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p class="auth-info-desc"><strong>사진 한 장, 그게 전부예요.</strong></p>
+            <p class="auth-info-desc">장소명 몰라도 괜찮아요.<br>사진 속 분위기와 닮은 여행지를 찾아드려요.</p>
 
             <div class="auth-features">
               <div class="auth-feature-item">
-                <span class="auth-feature-name">이미지 업로드:</span>
-                <span class="auth-feature-desc">사진 속 장소와 분위기를 분석해요.</span>
+                <div class="auth-feature-icon auth-feature-icon--blue">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                </div>
+                <div class="auth-feature-content">
+                  <span class="auth-feature-name">사진 업로드</span>
+                  <span class="auth-feature-desc">내가 찍었거나 마음에 든 사진을 올려보세요.</span>
+                </div>
               </div>
               <div class="auth-feature-item">
-                <span class="auth-feature-name">장소 추천:</span>
-                <span class="auth-feature-desc">관련 장소와 비슷한 여행지를 찾아요.</span>
+                <div class="auth-feature-icon auth-feature-icon--green">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                </div>
+                <div class="auth-feature-content">
+                  <span class="auth-feature-name">닮은 여행지 탐색</span>
+                  <span class="auth-feature-desc">비슷한 분위기의 여행지를 바로 찾아볼 수 있어요.</span>
+                </div>
               </div>
               <div class="auth-feature-item">
-                <span class="auth-feature-name">여행 계획:</span>
-                <span class="auth-feature-desc">추천 장소를 일정과 동선으로 연결해요.</span>
+                <div class="auth-feature-icon auth-feature-icon--orange">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                    <line x1="8" y1="14" x2="8" y2="14"/>
+                    <line x1="12" y1="14" x2="12" y2="14"/>
+                    <line x1="16" y1="14" x2="16" y2="14"/>
+                  </svg>
+                </div>
+                <div class="auth-feature-content">
+                  <span class="auth-feature-name">여행 계획으로 연결</span>
+                  <span class="auth-feature-desc">마음에 드는 곳은 바로 일정으로 만들어요.</span>
+                </div>
               </div>
             </div>
           </div>
@@ -77,32 +124,74 @@
             <form id="login-form" class="auth-form" novalidate>
               <div class="form-group">
                 <label class="form-label" for="email">이메일</label>
-                <input
-                  id="email"
-                  class="form-input"
-                  type="email"
-                  placeholder="이메일을 입력하세요"
-                  required
-                  autocomplete="email"
-                />
+                <div class="input-wrapper">
+                  <input id="email" class="form-input" type="email" placeholder="이메일을 입력하세요" required autocomplete="email" />
+                  <span class="input-state-icon" id="email-icon">
+                    <!-- filled by JS -->
+                  </span>
+                </div>
+                <div class="field-error" id="email-error">
+                  <span class="field-error-icon">⚠</span>
+                  <span class="field-error-text"></span>
+                </div>
               </div>
 
               <div class="form-group">
                 <label class="form-label" for="password">비밀번호</label>
-                <input
-                  id="password"
-                  class="form-input"
-                  type="password"
-                  placeholder="비밀번호를 입력하세요"
-                  required
-                  autocomplete="current-password"
-                />
+                <div class="input-wrapper">
+                  <input id="password" class="form-input has-toggle" type="password" placeholder="비밀번호를 입력하세요" required autocomplete="current-password" />
+                  <button type="button" class="input-eye-toggle" id="password-toggle" aria-label="비밀번호 표시">
+                    <!-- eye icon (open) -->
+                    <svg id="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <!-- eye icon (closed) -->
+                    <svg id="eye-closed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="field-error" id="password-error">
+                  <span class="field-error-icon">⚠</span>
+                  <span class="field-error-text"></span>
+                </div>
               </div>
 
               <p id="message" class="auth-message"></p>
 
-              <button type="submit" class="btn-primary">로그인</button>
+              <button type="submit" class="btn-primary" id="submit-btn">
+                <span class="btn-label">로그인</span>
+                <span class="btn-spinner"></span>
+              </button>
             </form>
+
+            <!-- 소셜 로그인 -->
+            <div class="auth-divider">또는</div>
+
+            <!--
+              data-provider: supabase.auth.signInWithOAuth에 전달하는 provider 식별자.
+              google은 Supabase 내장 provider.
+              custom:kakao는 Custom OIDC provider — Supabase 대시보드 Custom Providers에 등록한 값과 일치해야 함.
+            -->
+            <div class="social-actions">
+              <button class="social-button google" data-provider="google" type="button">
+                <svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#fbbc05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84z"/>
+                  <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.3 9.14 5.38 12 5.38z"/>
+                </svg>
+                Google로 계속하기
+              </button>
+              <button class="social-button kakao" data-provider="custom:kakao" type="button">
+                <svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#191600" d="M12 3.5c5.25 0 9.5 3.35 9.5 7.48 0 4.12-4.25 7.47-9.5 7.47-.54 0-1.07-.04-1.59-.11l-4.08 2.67c-.43.28-.98-.11-.84-.6l1.03-3.54C4.07 15.5 2.5 13.38 2.5 10.98 2.5 6.85 6.75 3.5 12 3.5z"/>
+                </svg>
+                Kakao로 계속하기
+              </button>
+            </div>
 
             <p class="auth-form-footer">
               아직 계정이 없으신가요? <a href="/pages/signup.html">회원가입하기</a>
@@ -115,5 +204,6 @@
 
     <script src="../js/common/api.js"></script>
     <script src="../js/auth/login.js"></script>
+    <script type="module" src="../js/auth/social-auth.js"></script>
   </body>
 </html>
