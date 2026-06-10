@@ -2,13 +2,17 @@ const supabase = require('../config/supabaseClient');
 
 async function signup(req, res, next) {
   try {
-    const { email, password } = req.body;
+    const { email, password, nickname } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ message: '이메일과 비밀번호를 입력해주세요.' });
     }
 
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { nickname: nickname || '' } },
+    });
 
     if (error) {
       return res.status(400).json({ message: error.message });
