@@ -6,6 +6,12 @@ const pages = {
   mood: document.querySelector("#moodPage"),
 };
 
+const recommedationSpots = {
+  spotName: "",
+  country: "",
+  reason: "",
+};
+
 const state = {
   location: {
     imageBase64: "",
@@ -156,6 +162,12 @@ function renderSpots(spots) {
                   ${spot.country ? `<span class="spot-country"> · ${escapeHtml(spot.country)}</span>` : ""}
                 </p>
                 <p class="spot-reason">${escapeHtml(spot.reason || "")}</p>
+                
+                <div class="text-end mt-2">
+                  <button type="button" id="itinerary-create-btn" class="btn btn-sm btn-outline-primary spot-action-btn" data-name="${escapeHtml(spot.name || "")}">
+                    여행 일정 생성하기
+                  </button>
+                </div>
               </div>
             `,
     )
@@ -234,6 +246,15 @@ function updatePreview(mode, file, imageEl, placeholderEl, uploadBoxEl) {
   uploadBoxEl.classList.add("has-image");
 }
 
+function configRecommendationSpots(data) {
+  console.log(data);
+  recommedationSpots.spotName = data.recommendation.spots.name;
+  recommedationSpots.country = data.recommendation.spots.country;
+  recommedationSpots.reason = data.recommendation.spots.reason;
+  console.log(recommedationSpots);
+
+  return recommedationSpots;
+}
 function setImageFromFile(
   mode,
   file,
@@ -299,6 +320,7 @@ async function analyzeLocation() {
     }
 
     const data = await response.json();
+    configRecommendationSpots(data);
     if (requestId !== state.location.requestId) return;
     resultEl.innerHTML = renderLocationResult(data);
     resultEl.classList.add("visible");
@@ -363,6 +385,7 @@ async function analyzeMood() {
     }
 
     const data = await response.json();
+
     if (requestId !== state.mood.requestId) return;
     resultEl.innerHTML = renderMoodResult(data);
     resultEl.classList.add("visible");
@@ -392,11 +415,22 @@ document.querySelectorAll("[data-open]").forEach((button) => {
   });
 });
 
-document.querySelectorAll("[data-back]").forEach((button) => {
-  button.addEventListener("click", () => {
-    resetAllModes();
-    showPage("home");
-  });
+document.body.addEventListener("click", (event) => {
+  // 클릭된 요소가 spot-action-btn 클래스를 가지고 있는지 확인
+  const targetBtn = event.target.closest(".spot-action-btn");
+
+  if (targetBtn) {
+    // 버튼의 data-name 속성에서 여행지(지역명) 가져오기
+    const spotName = targetBtn.dataset.name;
+
+    if (spotName) {
+      // sessionStorage에 'name'이라는 키로 지역명 저장
+      sessionStorage.setItem("name", spotName);
+
+      // 지정된 경로로 페이지 이동
+      window.location.href = "../../../public/pages/itinerary-create.html";
+    }
+  }
 });
 
 elements.location.input.addEventListener("change", (event) => {
