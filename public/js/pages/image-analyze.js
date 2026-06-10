@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3011";
+const API_BASE = "http://localhost:3000";
 
 const pages = {
   home: document.querySelector("#homePage"),
@@ -428,7 +428,7 @@ document.body.addEventListener("click", (event) => {
       sessionStorage.setItem("name", spotName);
 
       // 지정된 경로로 페이지 이동
-      window.location.href = "../../../public/pages/itinerary-create.html";
+      window.location.href = "/pages/itinerary-create.html";
     }
   }
 });
