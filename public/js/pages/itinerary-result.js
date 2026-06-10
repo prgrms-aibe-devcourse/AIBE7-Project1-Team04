@@ -108,8 +108,16 @@ function renderItinerary({ container, itinerary, onRegenerate }) {
   );
 
   container.append(screen);
-  bindDayTabs(screen);
-  initKakaoMap(itinerary, screen);
+
+  bindDayTabs(screen, itinerary);
+
+  try {
+    initKakaoMap(itinerary, screen);
+    bindTimelineMapLinks(screen);
+  } catch (error) {
+    console.error("[지도 초기화 실패]", error);
+    showToast("지도 연결 중 문제가 발생했지만 일정은 정상 표시됩니다.");
+  }
 }
 
 function createResultHero(itinerary) {
@@ -172,9 +180,13 @@ function createMapStrip(itinerary) {
   return map;
 }
 
-let kakaoMapInstance = null;
-let kakaoMarkers = [];
-let kakaoPolyline = null;
+const kakaoMapState = {
+  map: null,
+  itinerary: null,
+  screen: null,
+  overlays: [],
+  polyline: null,
+};
 
 function createKakaoMapSection(itinerary) {
   const section = document.createElement("section");
@@ -215,58 +227,136 @@ function initKakaoMap(itinerary, screen) {
 }
 
 function renderKakaoMap(itinerary, mapContainer, screen) {
-  const points = getMapPoints(itinerary);
-
-  const centerPoint = points[0] || getFallbackCenter(itinerary);
+  const firstDay = itinerary.days?.[0]?.day || 1;
+  const firstDayPoints = getMapPointsByDay(itinerary, firstDay);
+  const centerPoint = firstDayPoints[0] || getFallbackCenter(itinerary);
 
   const center = new kakao.maps.LatLng(centerPoint.lat, centerPoint.lng);
 
   const map = new kakao.maps.Map(mapContainer, {
     center,
-    level: points.length > 1 ? 7 : 5,
+    level: firstDayPoints.length > 1 ? 7 : 5,
   });
 
-  kakaoMapInstance = map;
-  kakaoMarkers = [];
+  kakaoMapState.map = map;
+  kakaoMapState.itinerary = itinerary;
+  kakaoMapState.screen = screen;
+
+  updateKakaoMapByDay(firstDay);
+}
+
+function createNumberMarkerElement(point) {
+  const marker = document.createElement("button");
+  marker.type = "button";
+  marker.className = "map-number-marker";
+  marker.dataset.day = String(point.day);
+  marker.dataset.order = String(point.order);
+  marker.title = `${point.order}. ${point.placeName}`;
+
+  marker.innerHTML = `
+    <span class="map-number-marker__pin">
+      <span class="map-number-marker__number">${escapeHtml(point.order)}</span>
+    </span>
+  `;
+
+  return marker;
+}
+
+function createMapInfoElement(point) {
+  const info = document.createElement("div");
+  info.className = "map-info-card";
+
+  const meta = [point.category, point.area].filter(Boolean).join(" · ");
+
+  info.innerHTML = `
+    <button class="map-info-card__close" type="button" aria-label="지도 정보 닫기">
+      ×
+    </button>
+    <strong class="map-info-card__title">
+      ${escapeHtml(point.placeName)}
+    </strong>
+    <p class="map-info-card__meta">
+      ${escapeHtml(meta || "추천 장소")}
+    </p>
+    <p class="map-info-card__reason">
+      ${escapeHtml(point.reason || "일정에 포함된 추천 장소입니다.")}
+    </p>
+  `;
+
+  return info;
+}
+
+function updateKakaoMapByDay(dayNumber) {
+  if (!kakaoMapState.map || !kakaoMapState.itinerary) return;
+
+  clearKakaoMap();
+
+  const map = kakaoMapState.map;
+  const screen = kakaoMapState.screen;
+  const points = getMapPointsByDay(kakaoMapState.itinerary, dayNumber);
+
+  if (points.length === 0) {
+    return;
+  }
 
   const bounds = new kakao.maps.LatLngBounds();
   const path = [];
 
-  points.forEach((point, index) => {
+  points.forEach((point) => {
     const position = new kakao.maps.LatLng(point.lat, point.lng);
 
     bounds.extend(position);
     path.push(position);
 
-    const marker = new kakao.maps.Marker({
-      map,
+    const markerElement = createNumberMarkerElement(point);
+    const infoElement = createMapInfoElement(point);
+
+    const markerOverlay = new kakao.maps.CustomOverlay({
       position,
-      title: point.placeName,
+      content: markerElement,
+      xAnchor: 0.5,
+      yAnchor: 1,
+      zIndex: 5,
     });
 
-    const infoWindow = new kakao.maps.InfoWindow({
-      content: `
-        <div class="map-info-window">
-          <strong>${escapeHtml(point.orderLabel)}</strong>
-          <span>${escapeHtml(point.placeName)}</span>
-        </div>
-      `,
+    const infoOverlay = new kakao.maps.CustomOverlay({
+      position,
+      content: infoElement,
+      xAnchor: 0.5,
+      yAnchor: 1.65,
+      zIndex: 20,
     });
 
-    kakao.maps.event.addListener(marker, "click", () => {
-      infoWindow.open(map, marker);
+    markerOverlay.setMap(map);
+
+    markerElement.addEventListener("click", () => {
+      closeAllMapInfoCards();
+
+      map.panTo(position);
+      infoOverlay.setMap(map);
+      setActiveMapMarker(markerElement);
       focusTimelineItem(screen, point);
     });
 
-    kakaoMarkers.push({
-      marker,
-      infoWindow,
+    infoElement
+      .querySelector(".map-info-card__close")
+      ?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        infoOverlay.setMap(null);
+        markerElement.classList.remove("is-active");
+      });
+
+    kakaoMapState.overlays.push({
+      overlay: markerOverlay,
+      infoOverlay,
       point,
+      element: markerElement,
+      position,
     });
   });
 
   if (path.length >= 2) {
-    kakaoPolyline = new kakao.maps.Polyline({
+    kakaoMapState.polyline = new kakao.maps.Polyline({
       map,
       path,
       strokeWeight: 4,
@@ -278,37 +368,62 @@ function renderKakaoMap(itinerary, mapContainer, screen) {
 
   if (points.length >= 2) {
     map.setBounds(bounds);
+  } else {
+    map.setCenter(path[0]);
+    map.setLevel(5);
   }
-
-  bindTimelineMapLinks(screen, map);
 }
 
-function getMapPoints(itinerary) {
-  const days = Array.isArray(itinerary.days) ? itinerary.days : [];
-
-  return days.flatMap((day) => {
-    const items = Array.isArray(day.items) ? day.items : [];
-
-    return items
-      .map((item, index) => {
-        const lat = Number(item.lat ?? item.latitude);
-        const lng = Number(item.lng ?? item.longitude);
-
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-          return null;
-        }
-
-        return {
-          day: day.day,
-          order: item.order || index + 1,
-          orderLabel: `Day ${day.day} - ${item.order || index + 1}`,
-          placeName: item.placeName || "추천 장소",
-          lat,
-          lng,
-        };
-      })
-      .filter(Boolean);
+function closeAllMapInfoCards() {
+  kakaoMapState.overlays.forEach(({ infoOverlay, element }) => {
+    infoOverlay?.setMap(null);
+    element?.classList.remove("is-active");
   });
+}
+
+function clearKakaoMap() {
+  kakaoMapState.overlays.forEach(({ overlay, infoOverlay }) => {
+    overlay?.setMap(null);
+    infoOverlay?.setMap(null);
+  });
+
+  kakaoMapState.overlays = [];
+
+  if (kakaoMapState.polyline) {
+    kakaoMapState.polyline.setMap(null);
+    kakaoMapState.polyline = null;
+  }
+}
+
+function getMapPointsByDay(itinerary, dayNumber) {
+  const days = Array.isArray(itinerary.days) ? itinerary.days : [];
+  const selectedDay = days.find((day) => Number(day.day) === Number(dayNumber));
+
+  if (!selectedDay) return [];
+
+  const items = Array.isArray(selectedDay.items) ? selectedDay.items : [];
+
+  return items
+    .map((item, index) => {
+      const lat = Number(item.lat ?? item.latitude);
+      const lng = Number(item.lng ?? item.longitude);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return null;
+      }
+
+      return {
+        day: Number(selectedDay.day),
+        order: Number(item.order || index + 1),
+        placeName: item.placeName || "추천 장소",
+        category: item.category || "",
+        area: item.area || "",
+        reason: item.reason || "",
+        lat,
+        lng,
+      };
+    })
+    .filter(Boolean);
 }
 
 function getFallbackCenter(itinerary) {
@@ -337,48 +452,36 @@ function getFallbackCenter(itinerary) {
   };
 }
 
-function bindTimelineMapLinks(screen, map) {
+function bindTimelineMapLinks(screen) {
   const items = screen.querySelectorAll(".timeline-item");
 
   items.forEach((item) => {
-    item.addEventListener("click", () => {
+    item.addEventListener("click", (event) => {
+      const isButton = event.target.closest(".map-focus-button");
+      const isCard = event.target.closest(".place-card");
+
+      if (!isButton && !isCard) return;
+
       const day = Number(item.dataset.day);
       const order = Number(item.dataset.order);
 
-      const matched = kakaoMarkers.find(
+      const matched = kakaoMapState.overlays.find(
         (entry) => entry.point.day === day && entry.point.order === order,
       );
 
-      if (!matched) return;
+      if (!matched || !kakaoMapState.map) {
+        showToast("이 장소의 지도 좌표가 없습니다.");
+        return;
+      }
 
-      const position = matched.marker.getPosition();
-      map.panTo(position);
-      matched.infoWindow.open(map, matched.marker);
+      closeAllMapInfoCards();
+
+      kakaoMapState.map.panTo(matched.position);
+      matched.infoOverlay?.setMap(kakaoMapState.map);
+      setActiveMapMarker(matched.element);
+      focusTimelineItem(screen, matched.point);
     });
   });
-}
-
-function focusTimelineItem(screen, point) {
-  const target = screen.querySelector(
-    `.timeline-item[data-day="${point.day}"][data-order="${point.order}"]`,
-  );
-
-  if (!target) return;
-
-  target.scrollIntoView({
-    behavior: "smooth",
-    block: "center",
-  });
-
-  screen.querySelectorAll(".timeline-item.is-focused").forEach((item) => {
-    item.classList.remove("is-focused");
-  });
-
-  target.classList.add("is-focused");
-
-  window.setTimeout(() => {
-    target.classList.remove("is-focused");
-  }, 1800);
 }
 
 function createDayTabs(itinerary) {
@@ -453,9 +556,9 @@ function createTimelineItem(item, index, dayNumber) {
   li.className = "timeline-item";
 
   const order = item.order || index + 1;
-  
+
   li.dataset.day = String(dayNumber);
-  li.dataset.order = String(item.order || index + 1);
+  li.dataset.order = String(order);
 
   const meta = [item.category, item.area].filter(Boolean).join(" · ");
   const chips = [item.duration, item.budgetHint].filter(Boolean);
@@ -468,7 +571,10 @@ function createTimelineItem(item, index, dayNumber) {
         ${getIconByCategory(item.category)}
       </div>
       <div>
-        <h4>${escapeHtml(item.placeName || "추천 장소")}</h4>
+        <div class="place-card__header">
+          <h4>${escapeHtml(item.placeName || "추천 장소")}</h4>
+          <button class="map-focus-button" type="button">지도에서 보기</button>
+        </div>
         <p class="place-meta">${escapeHtml(meta)}</p>
         <p class="place-reason">
           <strong>추천</strong>
@@ -572,13 +678,13 @@ function createFeedbackBox(itinerary, onRegenerate) {
   return box;
 }
 
-function bindDayTabs(screen) {
+function bindDayTabs(screen, itinerary) {
   const tabs = screen.querySelectorAll(".day-tab");
   const panels = screen.querySelectorAll(".day-panel");
 
   tabs.forEach((tab) => {
     tab.addEventListener("click", () => {
-      const selectedDay = tab.dataset.day;
+      const selectedDay = Number(tab.dataset.day);
 
       tabs.forEach((item) => {
         const isActive = item === tab;
@@ -587,8 +693,10 @@ function bindDayTabs(screen) {
       });
 
       panels.forEach((panel) => {
-        panel.hidden = panel.dataset.dayPanel !== selectedDay;
+        panel.hidden = Number(panel.dataset.dayPanel) !== selectedDay;
       });
+
+      updateKakaoMapByDay(selectedDay);
     });
   });
 }
@@ -695,6 +803,34 @@ function createItineraryText(itinerary) {
   }
 
   return lines.filter((line) => line !== undefined && line !== null).join("\n");
+}
+
+function focusTimelineItem(screen, point) {
+  const target = screen.querySelector(
+    `.timeline-item[data-day="${point.day}"][data-order="${point.order}"]`,
+  );
+
+  if (!target) return;
+
+  screen.querySelectorAll(".timeline-item.is-focused").forEach((item) => {
+    item.classList.remove("is-focused");
+  });
+
+  target.classList.add("is-focused");
+
+  window.setTimeout(() => {
+    target.classList.remove("is-focused");
+  }, 1800);
+}
+
+function setActiveMapMarker(markerElement) {
+  document
+    .querySelectorAll(".map-number-marker.is-active")
+    .forEach((marker) => {
+      marker.classList.remove("is-active");
+    });
+
+  markerElement.classList.add("is-active");
 }
 
 function sanitizeFileName(fileName) {
