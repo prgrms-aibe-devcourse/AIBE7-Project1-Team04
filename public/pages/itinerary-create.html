@@ -4,9 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PicTrip | 여행 일정 생성</title>
+    <link rel="stylesheet" href="/css/site-shell.css" />
     <link rel="stylesheet" href="/css/itinerary-style.css" />
   </head>
   <body>
+    <div id="site-header"></div>
+
     <!-- 여행 조건 입력 영역 -->
     <section class="planner-shell" aria-label="여행 일정 생성 조건 입력 영역">
       <form class="planner-form" id="plannerForm">
@@ -123,6 +126,14 @@
       </form>
     </section>
 
-    <script type="module" src="../js/pages/itinerary-create.js"></script>
+    <div id="site-footer"></div>
+
+    <script type="module">
+      import { renderHeader } from "/js/components/header.js";
+      import { renderFooter } from "/js/components/footer.js";
+      renderHeader({ active: "itinerary-create" });
+      renderFooter();
+    </script>
+    <script type="module" src="/js/pages/itinerary-create.js"></script>
   </body>
 </html>

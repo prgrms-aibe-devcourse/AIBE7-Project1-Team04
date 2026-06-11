@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PicTrip | 내 여행 일정</title>
+    <link rel="stylesheet" href="/css/site-shell.css" />
     <link rel="stylesheet" href="/css/itinerary-style.css" />
     <style>
       .trips-page {
@@ -192,18 +193,15 @@
     </style>
   </head>
   <body>
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="PicTrip 홈으로 이동">
-        <span class="brand__logo">T</span>
-        <span>PicTrip</span>
-      </a>
-      <a class="ghost-button" href="/pages/itinerary-create.html" style="font-size:0.9rem;padding:8px 16px;">+ 새 일정 만들기</a>
-    </header>
+    <div id="site-header"></div>
 
     <main class="trips-page">
-      <div class="trips-header">
-        <h1 class="trips-title">내 여행 일정</h1>
-        <p class="trips-subtitle">저장한 AI 맞춤 여행 일정을 확인하고 관리할 수 있어요.</p>
+      <div class="trips-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div>
+          <h1 class="trips-title">내 여행 일정</h1>
+          <p class="trips-subtitle">저장한 AI 맞춤 여행 일정을 확인하고 관리할 수 있어요.</p>
+        </div>
+        <a class="ghost-button" href="/pages/itinerary-create.html" style="font-size:0.9rem;padding:8px 16px;">+ 새 일정 만들기</a>
       </div>
 
       <div id="tripsContainer">
@@ -211,6 +209,14 @@
       </div>
     </main>
 
+    <div id="site-footer"></div>
+
+    <script type="module">
+      import { renderHeader } from "/js/components/header.js";
+      import { renderFooter } from "/js/components/footer.js";
+      renderHeader({ active: "my-trips" });
+      renderFooter();
+    </script>
     <script type="module" src="/js/pages/my-trips.js"></script>
   </body>
 </html>

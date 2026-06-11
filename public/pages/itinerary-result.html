@@ -8,23 +8,11 @@
       name="description"
       content="AI가 생성한 맞춤 여행 일정을 확인하고 저장할 수 있습니다."
     />
+    <link rel="stylesheet" href="/css/site-shell.css" />
     <link rel="stylesheet" href="/css/itinerary-style.css" />
   </head>
   <body>
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="PicTrip 홈으로 이동">
-        <span class="brand__logo">T</span>
-        <span>TRIP AI 맞춤일정</span>
-      </a>
-      <button
-        class="icon-button"
-        type="button"
-        id="shareButton"
-        aria-label="현재 일정 공유하기"
-      >
-        ↗
-      </button>
-    </header>
+    <div id="site-header"></div>
 
     <main>
       <nav class="page-progress" aria-label="일정 생성 단계">
@@ -53,6 +41,13 @@
           id="saveButton"
           >내 계정에 저장</button
         >
+        <button
+          class="ghost-button result-toolbar__button"
+          type="button"
+          id="shareButton"
+          aria-label="현재 일정 공유하기"
+          >↗ 공유</button
+        >
       </div>
 
       <section class="result" aria-live="polite">
@@ -64,7 +59,15 @@
       <div class="card-thumb card-thumb--placeholder" aria-hidden="true">⌁</div>
     </template>
 
+    <div id="site-footer"></div>
+
     <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=fd290fec1340d8ed510dcf21731d2b08&autoload=false&libraries=services"></script>
+    <script type="module">
+      import { renderHeader } from "/js/components/header.js";
+      import { renderFooter } from "/js/components/footer.js";
+      renderHeader({ active: "itinerary-create" });
+      renderFooter();
+    </script>
     <script type="module" src="/js/pages/itinerary-result.js"></script>
   </body>
 </html>
