@@ -3,19 +3,9 @@ function buildMarkup() {
     <footer class="main-footer">
       <div class="footer-inner">
         <div>
-          <div class="footer-brand-logo">
-            <svg width="22" height="22" viewBox="0 0 36 36" fill="none">
-              <circle cx="10" cy="10" r="4.5" fill="#fff"/>
-              <circle cx="26" cy="10" r="4.5" fill="#fff"/>
-              <circle cx="10" cy="26" r="4.5" fill="#fff"/>
-              <circle cx="26" cy="26" r="4.5" fill="#fff"/>
-              <line x1="10" y1="10" x2="26" y2="10" stroke="#fff" stroke-width="1.5"/>
-              <line x1="10" y1="10" x2="10" y2="26" stroke="#fff" stroke-width="1.5"/>
-              <line x1="26" y1="10" x2="26" y2="26" stroke="#fff" stroke-width="1.5"/>
-              <line x1="10" y1="26" x2="26" y2="26" stroke="#fff" stroke-width="1.5"/>
-            </svg>
-            PicTrip
-          </div>
+          <a href="/" class="footer-brand-logo" aria-label="PicTrip 홈">
+            <img src="/assets/images/PicTrip-Logo-footer2.png" alt="PicTrip" class="footer-brand-logo-img" />
+          </a>
           <p class="footer-brand-desc">당신의 여행을 더 특별하게,<br>맞춤 여행 추천 서비스</p>
           <div class="footer-socials">
             <a href="#" class="footer-social">X</a>
