@@ -1,11 +1,9 @@
-const express = require("express");
-const router = express.Router();
-const exifr = require("exifr");
 const dotenv = require("dotenv");
 const { z } = require("zod");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { PromptTemplate } = require("@langchain/core/prompts");
 const { StructuredOutputParser } = require("@langchain/core/output_parsers");
+const { ChatGroq } = require("@langchain/groq");
 
 const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
 const gemini = new ChatGoogleGenerativeAI({
@@ -17,6 +15,12 @@ const gemini = new ChatGoogleGenerativeAI({
 const gemma = new ChatGoogleGenerativeAI({
   apiKey,
   model: "gemma-4-31b-it",
+  temperature: 0,
+});
+
+const groq = new ChatGroq({
+  apiKey: process.env.GROQ_API_KEY,
+  model: "llama-3.3-70b-versatile",
   temperature: 0,
 });
 
@@ -93,12 +97,23 @@ function base64ToBuffer(input) {
 async function analyzeLocationWithGemini(base64Image, hint = "") {
   const prompt = new PromptTemplate({
     template: `
-사진을 보고 위치와 좌표를 추정해 주세요.
+당신은 이미지 분석 전문가입니다.
+
+주어진 사진을 보고 해당 사진이 촬영된 **여행지(관광지/명소/핫플레이스)**를 추정하세요.
 
 힌트:
 {hint}
 
-반드시 JSON만 반환하고 schema를 지켜 주세요.
+반드시 지켜야 할 규칙:
+- 결과는 반드시 한국어로 작성합니다.
+- 반드시 "실제 존재하는 여행지 이름"을 반환합니다.
+- 행정구역(시/도 + 시/군/구)을 반드시 포함합니다.
+  예: "서울특별시 종로구 경복궁", "제주특별자치도 제주시 성산일출봉"
+- 너무 큰 행정구역(예: 서울, 부산)만 단독으로 반환하지 마세요.
+- 가장 가능성 높은 장소 1개만 선택합니다.
+- 설명 없이 결과만 반환합니다.
+- 반드시 JSON 형식만 반환합니다.
+- schema를 반드시 따릅니다.
 
 {format_instructions}
 `,
@@ -174,7 +189,7 @@ async function analyzeMoodWithGemini(base64Image, extra = "") {
 
 async function recommendTravelPlace(prompt) {
   try {
-    const response = await gemma.invoke([
+    const response = await groq.invoke([
       {
         role: "user",
         content: [{ type: "text", text: prompt }],
@@ -217,57 +232,6 @@ async function findLocation(req, res, next) {
       return res.status(400).json({ error: "image is required" });
     }
 
-    const imageBuffer = base64ToBuffer(image);
-    const gps = await exifr.gps(imageBuffer);
-
-    if (
-      gps &&
-      Number.isFinite(gps.latitude) &&
-      Number.isFinite(gps.longitude) &&
-      !Number.isNaN(gps.latitude) &&
-      !Number.isNaN(gps.longitude)
-    ) {
-      const recommendation = await recommendTravelPlace(`
-위도: ${gps.latitude}
-경도: ${gps.longitude}
-
-이 위치를 기준으로 한국 여행지 3곳을 추천해 주세요.
-
-⚠️ 중요 규칙:
-- 반드시 "관광지 / 명소 / 핫플레이스" 단위로만 추천
-- 절대 "경상남도, 통영시, 남해군, 서울시 같은 행정구역 자체를 추천하지 말 것"
-- 반드시 실제 방문 가능한 장소 이름만 사용
-- 자연/건물/명소/카페/해변/테마파크 등 구체적인 장소만 허용
-- name에는 관광지 이름만 작성
-- region에는 해당 관광지가 위치한 시/군/구 또는 대표 지역명을 작성
-- region은 좌표 검색에 사용할 수 있도록 최대한 구체적으로 작성
-- 예시:
-  - name: "동피랑 벽화마을"
-  - region: "경상남도 통영시"
-  - name: "미륵산 케이블카"
-  - region: "경상남도 통영시"
-
-반드시 JSON만 반환
-
-{
-  "spots": [
-    {
-      "name": "",
-      "region": "",
-      "reason": ""
-    }
-  ]
-}
-`);
-
-      return res.json({
-        source: "EXIF",
-        latitude: gps.latitude,
-        longitude: gps.longitude,
-        recommendation,
-      });
-    }
-
     let historyHint = "";
     let parsed = null;
 
@@ -282,7 +246,7 @@ async function findLocation(req, res, next) {
         parsed = null;
       }
 
-      if (parsed && parsed.confidence >= 80) {
+      if (parsed && parsed.confidence >= 90) {
         break;
       }
 
@@ -303,11 +267,7 @@ async function findLocation(req, res, next) {
 추정 위치:
 ${safeLocation.region}
 
-위도:
-${safeLocation.latitude}
 
-경도:
-${safeLocation.longitude}
 
 이 지역과 어울리는 한국 여행지 3곳을 추천해 주세요.
 
@@ -315,7 +275,6 @@ ${safeLocation.longitude}
 - 반드시 "관광지 / 명소 / 핫플레이스" 단위로만 추천
 - 절대 "경상남도, 통영시, 남해군, 서울시 같은 행정구역 자체를 추천하지 말 것"
 - 반드시 실제 방문 가능한 장소 이름만 사용
-- 자연/건물/명소/카페/해변/테마파크 등 구체적인 장소만 허용
 - name에는 관광지 이름만 작성
 - region에는 해당 관광지가 위치한 시/군/구 또는 대표 지역명을 작성
 - region은 좌표 검색에 사용할 수 있도록 최대한 구체적으로 작성
@@ -387,7 +346,6 @@ ${extra || "(없음)"}
 - 반드시 "관광지 / 명소 / 핫플레이스" 단위로만 추천
 - 절대 "경상남도, 통영시, 남해군, 서울시 같은 행정구역 자체를 추천하지 말 것"
 - 반드시 실제 방문 가능한 장소 이름만 사용
-- 자연/건물/명소/카페/해변/테마파크 등 구체적인 장소만 허용
 - name에는 관광지 이름만 작성
 - region에는 해당 관광지가 위치한 시/군/구 또는 대표 지역명을 작성
 - region은 좌표 검색에 사용할 수 있도록 최대한 구체적으로 작성

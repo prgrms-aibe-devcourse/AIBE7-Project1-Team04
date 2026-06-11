@@ -1,3 +1,10 @@
+/* =====================================================
+   image-mood-analyze.css
+   분위기 기반 여행지 추천 페이지 전용 스타일
+   location 버전과의 차이: .mood-tags / .mood-tag 추가,
+   .meta-row / .meta-badge 제거 (분위기 페이지 미사용)
+===================================================== */
+
 :root {
   --bg-1: #f6f7fb;
   --bg-2: #eef2ff;
@@ -32,17 +39,7 @@ body {
   max-width: 1100px;
 }
 
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: rgba(29, 78, 216, 0.08);
-  color: var(--primary);
-  font-weight: 700;
-  font-size: 0.9rem;
-}
+/* ── 카드/레이아웃 공통 ── */
 
 .glass-card {
   border: 1px solid rgba(255, 255, 255, 0.65);
@@ -60,79 +57,7 @@ body {
   display: block;
 }
 
-.home-grid {
-  display: grid;
-  gap: 18px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.choice-card {
-  min-height: 240px;
-  border: 1px solid var(--line);
-  border-radius: 28px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.96) 0%,
-    rgba(248, 250, 252, 0.88) 100%
-  );
-  padding: 28px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
-  text-align: left;
-  width: 100%;
-}
-
-.choice-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(37, 99, 235, 0.25);
-  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.12);
-}
-
-.choice-kicker {
-  color: var(--primary);
-  font-weight: 700;
-  font-size: 0.9rem;
-  letter-spacing: 0.02em;
-}
-
-.choice-title {
-  font-size: clamp(1.6rem, 3vw, 2.25rem);
-  line-height: 1.1;
-  font-weight: 800;
-  margin: 10px 0 14px;
-  letter-spacing: -0.03em;
-}
-
-.choice-desc {
-  color: var(--muted);
-  font-size: 0.98rem;
-  line-height: 1.6;
-  max-width: 30ch;
-}
-
-.choice-cta {
-  margin-top: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 0;
-  border-radius: 16px;
-  padding: 16px 18px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
-  color: white;
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.choice-cta.secondary {
-  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
-}
+/* ── 헤더 영역 ── */
 
 .page-title {
   font-size: clamp(2rem, 4vw, 3rem);
@@ -155,6 +80,8 @@ body {
   padding: 11px 16px;
   font-weight: 700;
 }
+
+/* ── 업로드 박스 ── */
 
 .upload-box {
   width: 100%;
@@ -216,6 +143,8 @@ body {
   margin-bottom: 10px;
 }
 
+/* ── 결과 영역 ── */
+
 .result {
   display: none;
 }
@@ -224,41 +153,33 @@ body {
   display: block;
 }
 
-.spot-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 18px;
-  padding: 16px 18px;
-  background: white;
+/* ── 분위기 태그 (mood 페이지 전용) ── */
+
+.mood-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-.spot-name {
-  font-weight: 800;
-  margin: 0 0 6px;
+.mood-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  background: rgba(29, 78, 216, 0.08);
+  color: var(--primary);
 }
 
-.spot-country {
-  color: #64748b;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
+/* ── 여행 카드 ── */
 
-.spot-reason {
-  margin: 0;
-  color: #475569;
-  line-height: 1.55;
-}
-
-/* =================================================================
-   [완전 수정] 부트스트랩 레이아웃 충돌 해결 및 트래블 카드 디자인
-================================================================= */
-
-/* 기존 .travel-grid의 무리한 grid 설정을 빼고 부트스트랩 row에 양보합니다 */
 .travel-grid {
   margin-top: 20px;
 }
 
 .travel-card {
-  width: 100%; /* 부트스트랩 col-md-4 너비를 완전히 꽉 채우도록 강제 */
+  width: 100%;
   overflow: hidden;
   border-radius: 20px;
   border: 1px solid rgba(226, 232, 240, 0.9);
@@ -271,7 +192,7 @@ body {
     box-shadow 0.25s ease;
   display: flex;
   flex-direction: column;
-  height: 100%; /* 3개 카드 높이를 똑같이 통일 */
+  height: 100%;
 }
 
 .travel-card:hover {
@@ -279,7 +200,6 @@ body {
   box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.12);
 }
 
-/* 지도 영역 높이를 고정하여 안정감 부여 */
 .travel-map {
   width: 100%;
   height: 200px !important;
@@ -288,7 +208,6 @@ body {
   border-bottom: 1px solid #e2e8f0;
 }
 
-/* 내부 텍스트 및 버튼 패딩 정돈 */
 .travel-card-body {
   padding: 24px 20px;
   display: flex;
@@ -301,7 +220,6 @@ body {
   margin-bottom: 14px;
 }
 
-/* 여행지 제목 */
 .travel-card-title {
   font-weight: 800;
   font-size: 1.25rem;
@@ -310,7 +228,6 @@ body {
   line-height: 1.4;
 }
 
-/* 지역명 배지 */
 .travel-card-subtitle {
   display: inline-flex;
   align-items: center;
@@ -323,7 +240,6 @@ body {
   font-weight: 700;
 }
 
-/* 본문 설명 텍스트 (한글 단어 단위 개행 적용) */
 .travel-reason {
   margin: 0 0 24px 0;
   color: #475569;
@@ -333,7 +249,6 @@ body {
   word-break: keep-all;
 }
 
-/* 일정 만들기 버튼 */
 .spot-action-btn {
   width: 100%;
   padding: 12px;
@@ -356,7 +271,6 @@ body {
   border-color: #0f172a !important;
 }
 
-/* 카카오 지도 내부 하얀 박스 깨짐 해결용 */
 .map-info-window {
   padding: 6px 10px;
   font-size: 12px;
@@ -366,53 +280,7 @@ body {
   text-align: center;
 }
 
-/* ⚠️ 기존에 찌그러트리던 @media (max-width: 991.98px) 내부의 .travel-grid { grid-template-columns: 1fr; } 구문은 완전히 지우거나 아래처럼 비워두셔야 합니다! */
-@media (max-width: 991.98px) {
-  /* 부트스트랩 col이 반응형을 대신 하므로 여기는 비워둡니다. */
-}
-
-@media (max-width: 640px) {
-  .travel-grid {
-    grid-template-columns: 1fr; /* 모바일에선 1열 */
-    gap: 16px;
-  }
-  .travel-card-body {
-    padding: 18px 16px;
-  }
-}
-
-.meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.meta-badge,
-.mood-tag {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 0.84rem;
-  font-weight: 700;
-}
-
-.meta-badge {
-  background: #f1f5f9;
-  color: #334155;
-}
-
-.mood-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.mood-tag {
-  background: rgba(29, 78, 216, 0.08);
-  color: var(--primary);
-}
+/* ── 상태 / 에러 ── */
 
 .error-box {
   display: none;
@@ -453,6 +321,8 @@ body {
   }
 }
 
+/* ── 애니메이션 ── */
+
 .fade-up {
   animation: fadeUp 0.45s ease both;
 }
@@ -468,12 +338,20 @@ body {
   }
 }
 
-@media (max-width: 991.98px) {
-  .home-grid {
-    grid-template-columns: 1fr;
-  }
+/* ── 반응형 ── */
 
+@media (max-width: 991.98px) {
   .travel-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .travel-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .travel-card-body {
+    padding: 18px 16px;
   }
 }
