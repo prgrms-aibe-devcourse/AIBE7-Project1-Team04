@@ -38,9 +38,21 @@ async function withTimeout(promise, ms) {
 
 const locationParser = StructuredOutputParser.fromZodSchema(
   z.object({
+    is_travel_image: z
+      .boolean()
+      .describe(
+        "이미지가 실제 야외 풍경, 건물, 자연 등 여행지나 장소와 관련된 사진이면 true, 웹사이트 스크린샷, 단순 텍스트, 무관한 실내 사물 근접샷이면 false",
+      ),
     sido: z.string().describe("시/도 (예: 서울특별시, 제주특별자치도)"),
     sigungu: z.string().describe("시/군/구 (예: 종로구, 제주시)"),
     spot_name: z.string().describe("상세 명소 이름 (예: 경복궁, 성산일출봉)"),
+    confidence: z
+      .number()
+      .min(0)
+      .max(1)
+      .describe(
+        "이미지 단서가 얼마나 명확하고 확실한지 기반으로 한 신뢰도 점수 (0.0 ~ 1.0). 랜드마크가 확실하면 높게, 모호하면 낮게 설정하세요.",
+      ),
   }),
 );
 
@@ -135,7 +147,10 @@ function normalizeBase64Input(input) {
 async function analyzeAndVerifyLocation(base64Image, userHint = "") {
   const step1Template = `
 당신은 이미지 분석 전문가입니다. 주어진 사진만 보고 촬영된 여행지를 추정하세요.
-텍스트 힌트보다 이미지의 시각적 단서가 무조건 1순위 우선순위를 가진다. 
+텍스트 힌트보다 이미지의 시각적 단서가 무조건 1순위 우선순위를 가진다.
+
+⚠️ [매우 중요] 만약 이미지가 여행지나 풍경 사진이 아니고, 인터넷 웹사이트 스크린샷, 컴퓨터 UI, 글자만 있는 문서, 혹은 장소를 알 수 없는 단순 사물(예: 키보드, 볼펜 등)인 경우 'is_travel_image'를 반드시 false로 설정하세요.
+
 반드시 설명 없이 주어진 JSON 스키마 형식으로만 반환하세요.
 {format_instructions}
 `;
@@ -177,21 +192,32 @@ async function analyzeAndVerifyLocation(base64Image, userHint = "") {
     const rawStep1 = readModelText(step1Response.content);
     const jsonStep1 = extractJson(rawStep1);
     imageAnalysisResult = await locationParser.parse(jsonStep1);
+    if (imageAnalysisResult.is_travel_image === false) {
+      return {
+        success: false,
+        errorType: "INVALID_IMAGE_TYPE",
+        message:
+          "올바른 여행지나 풍경 사진이 아닙니다. 스크린샷이나 무관한 사진은 분석할 수 없습니다.",
+      };
+    }
   } catch (parseError) {
     console.error("1단계 이미지 분석 파싱 실패, 기본값 대체:", parseError);
     imageAnalysisResult = {
       sido: "기록되지 않음",
       sigungu: "알 수 없음",
       spot_name: "관광 명소",
+      confidence: 0.5, // 👈 파싱 에러 시 적용할 기본 신뢰도
     };
   }
 
   const detectedLocation = `${imageAnalysisResult.sido} ${imageAnalysisResult.sigungu} ${imageAnalysisResult.spot_name}`;
 
+  // 👇 [여기 중요!] 힌트가 없을 때 이미지 자체의 신뢰도를 실어서 반환하도록 변경
   if (!userHint || userHint.trim() === "") {
     return {
       success: true,
       location: detectedLocation,
+      confidence: imageAnalysisResult.confidence ?? 0.75, // 👈 추가된 부분
       message: "힌트가 없어 이미지로만 분석했습니다.",
     };
   }
@@ -378,7 +404,9 @@ async function findLocation(req, res, next) {
 
       if (
         parsed &&
-        (parsed.success || parsed.errorType === "CONTRADICTORY_INPUT")
+        (parsed.success ||
+          parsed.errorType === "CONTRADICTORY_INPUT" ||
+          parsed.errorType === "INVALID_IMAGE_TYPE")
       ) {
         break;
       }
@@ -399,6 +427,18 @@ async function findLocation(req, res, next) {
         errorType: parsed.errorType,
         message: parsed.message,
         reason: parsed.reason,
+      });
+    }
+
+    if (
+      parsed &&
+      !parsed.success &&
+      parsed.errorType === "INVALID_IMAGE_TYPE"
+    ) {
+      return res.status(400).json({
+        success: false,
+        errorType: parsed.errorType,
+        message: parsed.message,
       });
     }
 
