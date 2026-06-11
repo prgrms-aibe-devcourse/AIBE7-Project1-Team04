@@ -139,8 +139,7 @@ async function renderKakaoMaps(spots, estimatedLocationName = null) {
     const container = document.getElementById(`map-${index}`);
     if (!container) continue;
 
-    const searchQuery = spot.name;
-
+    const searchQuery = spot.region ? `${spot.region} ${spot.name}` : spot.name;
     try {
       const results = await searchKakaoPlaces(searchQuery);
       if (results && results.length > 0) {
@@ -397,9 +396,9 @@ async function analyzeLocation() {
     // 추가 안정화
     await new Promise((r) => setTimeout(r, 3000)); // [수정] 추정 위치 이름을 두 번째 인자로 문자열 전달
     const estName = data.location?.region || null;
+    resultEl.classList.add("visible");
     await renderKakaoMaps(data.recommendation?.spots || [], estName);
 
-    resultEl.classList.add("visible");
     elements.moveMoodBtn.classList.remove("d-none");
     setStatus(statusEl, "분석 완료");
   } catch (error) {
