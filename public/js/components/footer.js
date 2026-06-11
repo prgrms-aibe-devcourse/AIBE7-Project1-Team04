@@ -27,9 +27,9 @@ function buildMarkup() {
         <div>
           <p class="footer-col-title">서비스</p>
           <ul class="footer-col-links">
-            <li><a href="/pages/image-analyze.html">이미지 검색</a></li>
+            <li><a href="/pages/image-location-analyze.html">위치 기반 추천</a></li>
+            <li><a href="/pages/image-mood-analyze.html">분위기 기반 추천</a></li>
             <li><a href="/pages/itinerary-create.html">여행 계획</a></li>
-            <li><a href="#">커뮤니티</a></li>
             <li><a href="/pages/my-trips.html">마이페이지</a></li>
           </ul>
         </div>
