@@ -9,61 +9,7 @@
   <body>
 
     <!-- ═══════════ HEADER ═══════════ -->
-    <header class="main-header">
-      <div class="main-header-inner">
-
-        <a href="/" class="header-logo">
-          <svg viewBox="0 0 36 36" fill="none">
-            <circle cx="10" cy="10" r="4.5" fill="#2563eb"/>
-            <circle cx="26" cy="10" r="4.5" fill="#2563eb"/>
-            <circle cx="10" cy="26" r="4.5" fill="#2563eb"/>
-            <circle cx="26" cy="26" r="4.5" fill="#2563eb"/>
-            <line x1="10" y1="10" x2="26" y2="10" stroke="#2563eb" stroke-width="1.5"/>
-            <line x1="10" y1="10" x2="10" y2="26" stroke="#2563eb" stroke-width="1.5"/>
-            <line x1="26" y1="10" x2="26" y2="26" stroke="#2563eb" stroke-width="1.5"/>
-            <line x1="10" y1="26" x2="26" y2="26" stroke="#2563eb" stroke-width="1.5"/>
-            <line x1="10" y1="10" x2="26" y2="26" stroke="#2563eb" stroke-width="1" stroke-dasharray="2 2"/>
-            <line x1="26" y1="10" x2="10" y2="26" stroke="#2563eb" stroke-width="1" stroke-dasharray="2 2"/>
-          </svg>
-        </a>
-
-        <ul class="header-nav">
-          <li><a href="/" class="nav-active">홈</a></li>
-          <li><a href="/pages/image-analyze.html">이미지 검색</a></li>
-          <li><a href="/pages/itinerary-create.html">여행 계획</a></li>
-          <li><a href="#">커뮤니티</a></li>
-          <li><a href="/pages/my-trips.html">마이페이지</a></li>
-        </ul>
-
-        <div class="header-right">
-          <!-- 비로그인 -->
-          <div id="guestActions">
-            <a href="/pages/login.html" class="btn-nav-outline">로그인</a>
-            <a href="/pages/signup.html" class="btn-nav-fill" style="margin-left:8px;">회원가입</a>
-          </div>
-          <!-- 로그인 후 -->
-          <div class="user-menu hidden" id="userActions">
-            <button class="user-menu-trigger" id="userTrigger" type="button">
-              <div class="user-avatar" id="userAvatar">U</div>
-              <span id="userNickname">사용자</span>
-              <svg class="accordion-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            <div class="user-menu-dropdown" id="userDropdown">
-              <a href="/pages/my-trips.html">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
-                내 여행 목록
-              </a>
-              <hr/>
-              <button id="logoutBtn" class="danger-item" type="button">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                로그아웃
-              </button>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </header>
+    <div id="site-header"></div>
 
 
     <!-- ═══════════ HERO ═══════════ -->
@@ -266,60 +212,7 @@
 
 
     <!-- ═══════════ FOOTER ═══════════ -->
-    <footer class="main-footer">
-      <div class="footer-inner">
-
-        <div>
-          <div class="footer-brand-logo">
-            <svg width="22" height="22" viewBox="0 0 36 36" fill="none">
-              <circle cx="10" cy="10" r="4.5" fill="#fff"/>
-              <circle cx="26" cy="10" r="4.5" fill="#fff"/>
-              <circle cx="10" cy="26" r="4.5" fill="#fff"/>
-              <circle cx="26" cy="26" r="4.5" fill="#fff"/>
-              <line x1="10" y1="10" x2="26" y2="10" stroke="#fff" stroke-width="1.5"/>
-              <line x1="10" y1="10" x2="10" y2="26" stroke="#fff" stroke-width="1.5"/>
-              <line x1="26" y1="10" x2="26" y2="26" stroke="#fff" stroke-width="1.5"/>
-              <line x1="10" y1="26" x2="26" y2="26" stroke="#fff" stroke-width="1.5"/>
-            </svg>
-            PicTrip
-          </div>
-          <p class="footer-brand-desc">당신의 여행을 더 특별하게,<br>맞춤 여행 추천 서비스</p>
-          <div class="footer-socials">
-            <a href="#" class="footer-social">X</a>
-            <a href="#" class="footer-social">In</a>
-            <a href="#" class="footer-social">▶</a>
-          </div>
-        </div>
-
-        <div>
-          <p class="footer-col-title">서비스</p>
-          <ul class="footer-col-links">
-            <li><a href="/pages/image-analyze.html">이미지 검색</a></li>
-            <li><a href="/pages/itinerary-create.html">여행 계획</a></li>
-            <li><a href="#">커뮤니티</a></li>
-            <li><a href="/pages/my-trips.html">마이페이지</a></li>
-          </ul>
-        </div>
-
-        <div>
-          <p class="footer-col-title">고객센터</p>
-          <ul class="footer-col-links">
-            <li><a href="#">공지사항</a></li>
-            <li><a href="#">FAQ</a></li>
-            <li><a href="#">문의하기</a></li>
-          </ul>
-        </div>
-
-        <div>
-          <p class="footer-col-title">회사 정보</p>
-          <ul class="footer-col-links">
-            <li><a href="#">이용약관</a></li>
-            <li><a href="#">개인정보처리방침</a></li>
-          </ul>
-        </div>
-
-      </div>
-    </footer>
+    <div id="site-footer"></div>
 
     <script type="module" src="/js/pages/main.js"></script>
   </body>
