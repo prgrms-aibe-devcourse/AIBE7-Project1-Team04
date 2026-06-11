@@ -1,18 +1,19 @@
 :root {
-  --blue: #2f86ff;
-  --blue-deep: #1768dd;
+  /* main 디자인 시스템과 통일된 팔레트 (main.css / site-shell.css 기준) */
+  --blue: #2563eb;
+  --blue-deep: #1d4ed8;
   --mint: #22c7b8;
   --purple: #8e5cff;
-  --red: #ff5c68;
-  --ink: #20242a;
-  --muted: #8e98a8;
-  --line: #edf0f5;
-  --bg: #f6f8fb;
+  --red: #ff6b5a;
+  --ink: #111827;
+  --muted: #6b7280;
+  --line: #dde7f3;
+  --bg: #f4f8ff;
   --white: #ffffff;
-  --shadow: 0 18px 45px rgba(27, 45, 78, 0.09);
-  --radius-lg: 28px;
-  --radius-md: 18px;
-  --radius-sm: 12px;
+  --shadow: 0 2px 12px rgba(17, 24, 39, 0.07);
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
 }
 
 * {
@@ -160,7 +161,7 @@ main {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ff5c68;
+  background: var(--red);
   box-shadow: 0 0 0 5px rgba(255, 92, 104, 0.2);
 }
 
@@ -212,7 +213,7 @@ main {
   width: 34px;
   height: 34px;
   border-radius: 50% 50% 50% 0;
-  background: #2f86ff;
+  background: var(--blue);
   transform: translateX(-50%) rotate(-45deg);
   box-shadow: 0 8px 18px rgba(47, 134, 255, 0.35);
 }
@@ -348,7 +349,7 @@ main {
   border-radius: 999px;
   padding: 7px 10px;
   background: #f2f6ff;
-  color: #2f86ff;
+  color: var(--blue);
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
@@ -577,7 +578,7 @@ main {
   padding: 8px 12px;
   border-radius: 999px;
   background: #f2f6ff;
-  color: #2f86ff;
+  color: var(--blue);
   font-size: 13px;
   font-weight: 700;
 }
@@ -596,7 +597,7 @@ main {
 
 .map-info-window strong {
   display: block;
-  color: #2f86ff;
+  color: var(--blue);
   margin-bottom: 4px;
 }
 
@@ -976,7 +977,7 @@ main {
   bottom: 22px;
   width: 2px;
   content: "";
-  background: #edf0f5;
+  background: var(--line);
 }
 
 .timeline-item {
@@ -1062,7 +1063,7 @@ main {
 .place-reason {
   margin: 14px 0 0;
   padding-top: 14px;
-  border-top: 1px solid #edf0f5;
+  border-top: 1px solid var(--line);
   color: #3f4652;
   font-size: 15px;
   line-height: 1.6;
@@ -1095,7 +1096,7 @@ main {
   padding: 24px;
   border-radius: 24px;
   background: #fbfcfe;
-  border: 1px solid #edf0f5;
+  border: 1px solid var(--line);
 }
 
 .tips-box h3,
@@ -1182,7 +1183,7 @@ main {
   padding: 14px 16px;
   border-radius: 16px;
   color: #fff;
-  background: #20242a;
+  background: var(--ink);
   box-shadow: 0 16px 34px rgba(20, 28, 44, 0.24);
   font-weight: 800;
 }
@@ -1288,7 +1289,7 @@ main {
   width: min(720px, 100%);
   margin: 18px auto 6px;
   padding: 12px 16px;
-  border: 1px solid #edf0f5;
+  border: 1px solid var(--line);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.82);
   box-shadow: 0 12px 28px rgba(27, 45, 78, 0.06);
@@ -1325,7 +1326,7 @@ main {
   max-width: 80px;
   height: 2px;
   border-radius: 999px;
-  background: #edf0f5;
+  background: var(--line);
 }
 
 .page-progress__line.is-done {
@@ -1390,7 +1391,7 @@ main {
   gap: 14px;
   min-height: 46px;
   padding: 10px 14px;
-  border: 1px solid #edf0f5;
+  border: 1px solid var(--line);
   border-radius: 14px;
   background: #fbfcfe;
   text-align: left;
@@ -1591,7 +1592,7 @@ main {
 
 .day-summary-panel h3 {
   margin: 0;
-  color: #20242a;
+  color: var(--ink);
   font-size: 26px;
   line-height: 1.3;
   letter-spacing: -0.04em;
