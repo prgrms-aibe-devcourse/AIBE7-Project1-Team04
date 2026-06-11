@@ -358,6 +358,22 @@ main {
   background: #e5efff;
 }
 
+.delete-itinerary-item-button {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #f2f6ff;
+  color: #f02424;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.delete-itinerary-item-button:hover {
+  background: #e5efff;
+}
+
 .timeline-item.is-focused .place-card {
   outline: 3px solid rgba(47, 134, 255, 0.25);
   transform: translateY(-2px);
@@ -1657,6 +1673,166 @@ main {
 
 .result-timeline-panel .place-card h4 {
   font-size: 20px;
+}
+
+.place-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.edit-itinerary-item-button {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #f2f6ff;
+  color: #19d319;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.edit-itinerary-item-button:hover {
+  background: #e5efff;
+}
+
+.itinerary-edit-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.52);
+}
+
+.itinerary-edit-modal {
+  width: min(520px, 100%);
+  max-height: min(720px, calc(100vh - 40px));
+  overflow-y: auto;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+}
+
+.itinerary-edit-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.itinerary-edit-modal__eyebrow {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.itinerary-edit-modal__header h3 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+}
+
+.itinerary-edit-modal__close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.itinerary-edit-form {
+  display: grid;
+  gap: 16px;
+  padding: 20px 24px 24px;
+}
+
+.itinerary-edit-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.itinerary-edit-form label span {
+  font-size: 13px;
+  font-weight: 800;
+  color: #334155;
+}
+
+.itinerary-edit-form input,
+.itinerary-edit-form textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font: inherit;
+  color: #0f172a;
+  background: #ffffff;
+}
+
+.itinerary-edit-form input:focus,
+.itinerary-edit-form textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.itinerary-edit-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.itinerary-edit-modal__notice {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.itinerary-edit-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.is-modal-open {
+  overflow: hidden;
+}
+
+@media (max-width: 560px) {
+  .itinerary-edit-modal__header {
+    padding: 20px 18px 14px;
+  }
+
+  .itinerary-edit-form {
+    padding: 18px;
+  }
+
+  .itinerary-edit-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .itinerary-edit-modal__actions {
+    flex-direction: column-reverse;
+  }
+
+  .itinerary-edit-modal__actions button {
+    width: 100%;
+  }
 }
 
 /* 모바일에서만 세로 배치 */

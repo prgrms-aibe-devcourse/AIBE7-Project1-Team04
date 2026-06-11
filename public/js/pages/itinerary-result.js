@@ -1,4 +1,9 @@
-import { loadItinerary, loadPayload, savePayload } from "./itinerary-state.js";
+import {
+  loadItinerary,
+  loadPayload,
+  saveItinerary,
+  savePayload,
+} from "./itinerary-state.js";
 
 const CREATE_PAGE_URL = "./itinerary-create.html";
 const LOADING_PAGE_URL = "./itinerary-loading.html";
@@ -6,12 +11,22 @@ const LOADING_PAGE_URL = "./itinerary-loading.html";
 const DOT_COLORS = ["#8e5cff", "#ff5c68", "#22c7b8", "#2f86ff"];
 
 const resultContainer = document.querySelector("#resultContainer");
-const shareButton = document.querySelector("#shareButton");
 const retryButton = document.querySelector("#retryButton");
 const saveButton = document.querySelector("#saveButton");
 
 const payload = loadPayload();
-const itinerary = loadItinerary();
+const loadedItinerary = loadItinerary();
+
+const resultState = {
+  originalItinerary: loadedItinerary ? cloneItinerary(loadedItinerary) : null,
+  editableItinerary: loadedItinerary
+    ? normalizeItineraryForEditing(cloneItinerary(loadedItinerary))
+    : null,
+  selectedDay: loadedItinerary ? getFirstDayNumber(loadedItinerary) : 1,
+  screen: null,
+};
+
+let activeEditModalEscapeHandler = null;
 
 initResultPage();
 
@@ -32,7 +47,7 @@ function initResultPage() {
     return;
   }
 
-  if (!itinerary) {
+  if (!resultState.editableItinerary) {
     renderEmptyState(
       "생성된 여행 일정이 없어요.",
       "AI 생성 페이지로 이동해 일정을 먼저 만들어 주세요.",
@@ -45,7 +60,7 @@ function initResultPage() {
 
   renderItinerary({
     container: resultContainer,
-    itinerary,
+    itinerary: resultState.editableItinerary,
     onRegenerate: (refineText, previousItinerary) => {
       const nextPayload = {
         ...payload,
@@ -71,7 +86,6 @@ function bindCommonEvents() {
     sessionStorage.setItem("itineraryEntryMode", "clearNotesOnly");
   });
 
-  shareButton?.addEventListener("click", handleShare);
   saveButton?.addEventListener("click", handleSaveToAccount);
 }
 
@@ -85,7 +99,9 @@ async function handleSaveToAccount() {
     return;
   }
 
-  if (!itinerary) {
+  const currentItinerary = resultState.editableItinerary;
+
+  if (!currentItinerary) {
     showToast("저장할 일정이 없습니다.");
     return;
   }
@@ -103,9 +119,10 @@ async function handleSaveToAccount() {
         Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
-        title: itinerary.headline || `${payload?.keyword || "여행"} 일정`,
+        title:
+          currentItinerary.headline || `${payload?.keyword || "여행"} 일정`,
         payload: payload || {},
-        itinerary,
+        itinerary: currentItinerary,
       }),
     });
 
@@ -131,45 +148,34 @@ async function handleSaveToAccount() {
   }
 }
 
-async function handleShare() {
-  const text = itinerary
-    ? `${itinerary.headline || "AI 맞춤 여행 일정"}\n${itinerary.summary || ""}`.trim()
-    : "AI 맞춤 여행 일정";
-
-  try {
-    if (navigator.share) {
-      await navigator.share({
-        title: "AI 맞춤 여행 일정",
-        text,
-      });
-      return;
-    }
-
-    await navigator.clipboard.writeText(text);
-    showToast("현재 일정을 클립보드에 복사했어요.");
-  } catch (_error) {
-    showToast("공유를 취소했어요.");
-  }
-}
-
 function renderItinerary({ container, itinerary, onRegenerate }) {
   container.innerHTML = "";
+
+  resultState.editableItinerary = normalizeItineraryForEditing(itinerary);
+  resultState.selectedDay = ensureValidSelectedDay(
+    resultState.editableItinerary,
+    resultState.selectedDay,
+  );
 
   const screen = document.createElement("article");
   screen.className = "result-screen result-screen--split";
 
   screen.append(
-    createResultHero(itinerary),
-    createResultSplitLayout(itinerary),
+    createResultHero(resultState.editableItinerary),
+    createResultSplitLayout(resultState.editableItinerary),
   );
 
   container.append(screen);
+  resultState.screen = screen;
 
-  bindDayTabs(screen, itinerary);
+  bindDayTabs(screen);
+  refreshSelectedDayView({
+    updateMap: false,
+    scrollTimeline: false,
+  });
 
   try {
-    initKakaoMap(itinerary, screen);
-    bindTimelineMapLinks(screen);
+    initKakaoMap(resultState.editableItinerary, screen);
   } catch (error) {
     console.error("[지도 초기화 실패]", error);
     showToast("지도 연결 중 문제가 발생했지만 일정은 정상 표시됩니다.");
@@ -228,7 +234,7 @@ function createResultSplitLayout(itinerary) {
   timelinePanel.className = "result-timeline-panel";
   timelinePanel.setAttribute("aria-label", "Day별 상세 여행 일정");
 
-  timelinePanel.append(createTimeline(itinerary));
+  // 타임라인은 selectedDay 기준으로 refreshSelectedDayView()에서 렌더링합니다.
 
   layout.append(leftPanel, timelinePanel);
 
@@ -340,7 +346,9 @@ function initKakaoMap(itinerary, screen) {
 }
 
 function renderKakaoMap(itinerary, mapContainer, screen) {
-  const firstDay = itinerary.days?.[0]?.day || 1;
+  const firstDay = ensureValidSelectedDay(itinerary, resultState.selectedDay);
+  resultState.selectedDay = firstDay;
+
   const firstDayPoints = getMapPointsByDay(itinerary, firstDay);
   const centerPoint = firstDayPoints[0] || getFallbackCenter(itinerary);
 
@@ -575,31 +583,218 @@ function bindTimelineMapLinks(screen) {
 
   items.forEach((item) => {
     item.addEventListener("click", (event) => {
+      const editButton = event.target.closest(".edit-itinerary-item-button");
+      const deleteButton = event.target.closest(
+        ".delete-itinerary-item-button",
+      );
+
+      if (editButton) {
+        event.stopPropagation();
+        handleOpenEditItineraryItem(item);
+        return;
+      }
+
+      if (deleteButton) {
+        event.stopPropagation();
+        handleDeleteItineraryItem(item);
+        return;
+      }
+
       const isButton = event.target.closest(".map-focus-button");
       const isCard = event.target.closest(".place-card");
 
       if (!isButton && !isCard) return;
 
-      const day = Number(item.dataset.day);
-      const order = Number(item.dataset.order);
-
-      const matched = kakaoMapState.overlays.find(
-        (entry) => entry.point.day === day && entry.point.order === order,
-      );
-
-      if (!matched || !kakaoMapState.map) {
-        showToast("이 장소의 지도 좌표가 없습니다.");
-        return;
-      }
-
-      closeAllMapInfoCards();
-
-      kakaoMapState.map.panTo(matched.position);
-      matched.infoOverlay?.setMap(kakaoMapState.map);
-      setActiveMapMarker(matched.element);
-      focusTimelineItem(screen, matched.point);
+      focusMapPointByTimelineItem(item);
     });
   });
+}
+
+function focusMapPointByTimelineItem(item) {
+  const day = Number(item.dataset.day);
+  const order = Number(item.dataset.order);
+
+  const matched = kakaoMapState.overlays.find(
+    (entry) => entry.point.day === day && entry.point.order === order,
+  );
+
+  if (!matched || !kakaoMapState.map) {
+    showToast("이 장소의 지도 좌표가 없습니다.");
+    return;
+  }
+
+  closeAllMapInfoCards();
+
+  kakaoMapState.map.panTo(matched.position);
+  matched.infoOverlay?.setMap(kakaoMapState.map);
+  setActiveMapMarker(matched.element);
+  focusTimelineItem(resultState.screen, matched.point);
+}
+
+function handleDeleteItineraryItem(timelineItem) {
+  if (!timelineItem || !resultState.editableItinerary) return;
+
+  const dayNumber = Number(timelineItem.dataset.day);
+  const itemId = timelineItem.dataset.itemId;
+
+  const target =
+    findItineraryItemById(itemId) ||
+    findItineraryItemByDayAndOrder(
+      dayNumber,
+      Number(timelineItem.dataset.order),
+    );
+
+  if (!target?.item) {
+    showToast("삭제할 일정을 찾지 못했습니다.");
+    return;
+  }
+
+  const placeName = target.item.placeName || "선택한 일정";
+  const confirmed = window.confirm(`"${placeName}" 일정을 삭제할까요?`);
+
+  if (!confirmed) return;
+
+  updateEditableItinerary(
+    (itinerary) => {
+      const day = findDayByNumber(itinerary, dayNumber);
+      if (!day || !Array.isArray(day.items)) return;
+
+      day.items = day.items.filter(
+        (item) => String(item.id) !== String(target.item.id),
+      );
+    },
+    {
+      updateMap: true,
+      scrollTimeline: false,
+    },
+  );
+
+  showToast("일정이 삭제되었습니다.");
+}
+
+function handleOpenEditItineraryItem(timelineItem) {
+  const itemId = timelineItem.dataset.itemId;
+  const dayNumber = Number(timelineItem.dataset.day);
+  const order = Number(timelineItem.dataset.order);
+
+  const target =
+    findItineraryItemById(itemId) ||
+    findItineraryItemByDayAndOrder(dayNumber, order);
+
+  if (!target?.item) {
+    showToast("수정할 일정을 찾지 못했습니다.");
+    return;
+  }
+
+  openEditItineraryModal(target);
+}
+
+function findItineraryItemById(itemId) {
+  if (!itemId || !resultState.editableItinerary) return null;
+
+  const days = Array.isArray(resultState.editableItinerary.days)
+    ? resultState.editableItinerary.days
+    : [];
+
+  for (const day of days) {
+    const items = Array.isArray(day.items) ? day.items : [];
+    const itemIndex = items.findIndex(
+      (item) => String(item.id) === String(itemId),
+    );
+
+    if (itemIndex !== -1) {
+      return {
+        day,
+        item: items[itemIndex],
+        itemIndex,
+      };
+    }
+  }
+
+  return null;
+}
+
+function findItineraryItemByDayAndOrder(dayNumber, order) {
+  if (!resultState.editableItinerary) return null;
+
+  const days = Array.isArray(resultState.editableItinerary.days)
+    ? resultState.editableItinerary.days
+    : [];
+
+  const day = days.find((dayItem) => Number(dayItem.day) === Number(dayNumber));
+
+  if (!day) return null;
+
+  const items = Array.isArray(day.items) ? day.items : [];
+  const itemIndex = items.findIndex(
+    (item, index) => Number(item.order || index + 1) === Number(order),
+  );
+
+  if (itemIndex === -1) return null;
+
+  return {
+    day,
+    item: items[itemIndex],
+    itemIndex,
+  };
+}
+
+function findItineraryItemInItinerary(itinerary, itemId, dayNumber, order) {
+  const days = getItineraryDays(itinerary);
+
+  if (itemId) {
+    for (const day of days) {
+      const items = Array.isArray(day.items) ? day.items : [];
+      const itemIndex = items.findIndex(
+        (item) => String(item.id) === String(itemId),
+      );
+
+      if (itemIndex !== -1) {
+        return {
+          day,
+          item: items[itemIndex],
+          itemIndex,
+        };
+      }
+    }
+  }
+
+  const day = findDayByNumber(itinerary, dayNumber);
+
+  if (!day || !Array.isArray(day.items)) return null;
+
+  const itemIndex = day.items.findIndex(
+    (item, index) => Number(item.order || index + 1) === Number(order),
+  );
+
+  if (itemIndex === -1) return null;
+
+  return {
+    day,
+    item: day.items[itemIndex],
+    itemIndex,
+  };
+}
+
+function getTrimmedFormValue(formData, name) {
+  return String(formData.get(name) || "").trim();
+}
+
+function parseOptionalNumber(value) {
+  const text = String(value ?? "").trim();
+
+  if (!text) return null;
+
+  const number = Number(text);
+
+  return Number.isFinite(number) ? number : null;
+}
+
+function resetSaveButtonState() {
+  if (!saveButton) return;
+
+  saveButton.disabled = false;
+  saveButton.textContent = "내 계정에 저장";
 }
 
 function createDayTabs(itinerary) {
@@ -624,11 +819,14 @@ function createDayTabs(itinerary) {
   return tabs;
 }
 
-function createTimeline(itinerary) {
+function createTimeline(
+  itinerary,
+  selectedDayNumber = resultState.selectedDay,
+) {
   const wrapper = document.createElement("div");
   wrapper.className = "timeline";
 
-  const days = Array.isArray(itinerary.days) ? itinerary.days : [];
+  const days = getItineraryDays(itinerary);
 
   if (days.length === 0) {
     const empty = document.createElement("p");
@@ -638,33 +836,39 @@ function createTimeline(itinerary) {
     return wrapper;
   }
 
-  days.forEach((day, index) => {
-    const dayNumber = day.day || index + 1;
+  const selectedDay = findDayByNumber(itinerary, selectedDayNumber) || days[0];
+  const dayNumber = Number(selectedDay.day) || getFirstDayNumber(itinerary);
 
-    const panel = document.createElement("section");
-    panel.className = "day-panel";
-    panel.dataset.dayPanel = String(dayNumber);
-    panel.hidden = index !== 0;
+  const panel = document.createElement("section");
+  panel.className = "day-panel";
+  panel.dataset.dayPanel = String(dayNumber);
 
-    const title = document.createElement("div");
-    title.className = "day-title";
-    title.innerHTML = `
-      <h3>${escapeHtml(day.title || `Day ${dayNumber}`)}</h3>
-      <p>${escapeHtml(day.theme || "")}</p>
-    `;
+  const title = document.createElement("div");
+  title.className = "day-title";
+  title.innerHTML = `
+    <h3>${escapeHtml(selectedDay.title || `Day ${dayNumber}`)}</h3>
+    <p>${escapeHtml(selectedDay.theme || "")}</p>
+  `;
 
-    const list = document.createElement("ol");
-    list.className = "timeline-list";
+  const list = document.createElement("ol");
+  list.className = "timeline-list";
 
-    const items = Array.isArray(day.items) ? day.items : [];
+  const items = Array.isArray(selectedDay.items) ? selectedDay.items : [];
 
-    items.forEach((item, itemIndex) => {
-      list.append(createTimelineItem(item, itemIndex, dayNumber));
-    });
-
-    panel.append(title, list);
-    wrapper.append(panel);
+  items.forEach((item, itemIndex) => {
+    list.append(createTimelineItem(item, itemIndex, dayNumber));
   });
+
+  if (items.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-description";
+    empty.textContent = "이 Day에 표시할 일정이 없습니다.";
+    panel.append(title, empty);
+  } else {
+    panel.append(title, list);
+  }
+
+  wrapper.append(panel);
 
   return wrapper;
 }
@@ -675,8 +879,13 @@ function createTimelineItem(item, index, dayNumber) {
 
   const order = item.order || index + 1;
 
+  const itemId =
+    item.id ||
+    `${dayNumber}-${order}-${sanitizeFileName(item.placeName || "place")}`;
+
   li.dataset.day = String(dayNumber);
   li.dataset.order = String(order);
+  li.dataset.itemId = String(itemId);
 
   const meta = [item.category, item.area].filter(Boolean).join(" · ");
   const chips = [item.duration, item.budgetHint].filter(Boolean);
@@ -691,7 +900,11 @@ function createTimelineItem(item, index, dayNumber) {
       <div>
         <div class="place-card__header">
           <h4>${escapeHtml(item.placeName || "추천 장소")}</h4>
-          <button class="map-focus-button" type="button">지도에서 보기</button>
+          <div class="place-card__actions">
+            <button class="map-focus-button" type="button">지도에서 보기</button>
+            <button class="edit-itinerary-item-button" type="button">수정</button>
+            <button class="delete-itinerary-item-button" type="button">삭제</button>
+          </div>
         </div>
         <p class="place-meta">${escapeHtml(meta)}</p>
         <p class="place-reason">
@@ -795,40 +1008,171 @@ function createFeedbackBox(itinerary, onRegenerate) {
 
   return box;
 }
-function bindDayTabs(screen, itinerary) {
+function bindDayTabs(screen) {
   const tabs = screen.querySelectorAll(".day-tab");
-  const panels = screen.querySelectorAll(".day-panel");
-  const summaryPanels = screen.querySelectorAll(".day-summary-panel");
-  const timelineScroller = screen.querySelector(".result-timeline-panel");
 
   tabs.forEach((tab) => {
     tab.addEventListener("click", () => {
       const selectedDay = Number(tab.dataset.day);
 
-      tabs.forEach((item) => {
-        const isActive = item === tab;
-        item.classList.toggle("is-active", isActive);
-        item.setAttribute("aria-selected", isActive ? "true" : "false");
+      if (!Number.isFinite(selectedDay)) return;
+
+      resultState.selectedDay = selectedDay;
+
+      refreshSelectedDayView({
+        updateMap: true,
+        scrollTimeline: true,
       });
-
-      panels.forEach((panel) => {
-        panel.hidden = Number(panel.dataset.dayPanel) !== selectedDay;
-      });
-
-      summaryPanels.forEach((panel) => {
-        panel.hidden = Number(panel.dataset.daySummary) !== selectedDay;
-      });
-
-      if (timelineScroller) {
-        timelineScroller.scrollTo({
-          top: 0,
-          behavior: "smooth",
-        });
-      }
-
-      updateKakaoMapByDay(selectedDay);
     });
   });
+}
+
+function refreshSelectedDayView({
+  updateMap = true,
+  scrollTimeline = false,
+} = {}) {
+  const screen = resultState.screen;
+  const itinerary = resultState.editableItinerary;
+
+  if (!screen || !itinerary) return;
+
+  resultState.selectedDay = ensureValidSelectedDay(
+    itinerary,
+    resultState.selectedDay,
+  );
+
+  syncActiveDayTabs(screen, resultState.selectedDay);
+  syncDaySummaryPanels(screen, resultState.selectedDay);
+  renderSelectedDayTimeline(screen, itinerary, resultState.selectedDay);
+
+  if (scrollTimeline) {
+    scrollTimelinePanelToTop(screen);
+  }
+
+  if (updateMap) {
+    updateKakaoMapByDay(resultState.selectedDay);
+  }
+}
+
+function renderSelectedDayTimeline(screen, itinerary, selectedDay) {
+  const timelinePanel = screen.querySelector(".result-timeline-panel");
+
+  if (!timelinePanel) return;
+
+  timelinePanel.innerHTML = "";
+  timelinePanel.append(createTimeline(itinerary, selectedDay));
+
+  bindTimelineMapLinks(screen);
+}
+
+function syncActiveDayTabs(screen, selectedDay) {
+  const tabs = screen.querySelectorAll(".day-tab");
+
+  tabs.forEach((tab) => {
+    const isActive = Number(tab.dataset.day) === Number(selectedDay);
+
+    tab.classList.toggle("is-active", isActive);
+    tab.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+}
+
+function syncDaySummaryPanels(screen, selectedDay) {
+  const summaryPanels = screen.querySelectorAll(".day-summary-panel");
+
+  summaryPanels.forEach((panel) => {
+    panel.hidden = Number(panel.dataset.daySummary) !== Number(selectedDay);
+  });
+}
+
+function scrollTimelinePanelToTop(screen) {
+  const timelineScroller = screen.querySelector(".result-timeline-panel");
+
+  timelineScroller?.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+}
+
+function updateEditableItinerary(mutator, options = {}) {
+  if (typeof mutator !== "function" || !resultState.editableItinerary) return;
+
+  mutator(resultState.editableItinerary);
+
+  resultState.editableItinerary = normalizeItineraryForEditing(
+    resultState.editableItinerary,
+  );
+
+  kakaoMapState.itinerary = resultState.editableItinerary;
+
+  saveItinerary(resultState.editableItinerary);
+
+  resetSaveButtonState();
+
+  refreshSelectedDayView(options);
+}
+
+function cloneItinerary(value) {
+  if (typeof structuredClone === "function") {
+    return structuredClone(value);
+  }
+
+  return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeItineraryForEditing(itinerary) {
+  if (!itinerary || typeof itinerary !== "object") return itinerary;
+
+  const days = getItineraryDays(itinerary);
+
+  days.forEach((day, dayIndex) => {
+    const dayNumber = Number(day.day) || dayIndex + 1;
+    day.day = dayNumber;
+
+    const items = Array.isArray(day.items) ? day.items : [];
+    day.items = items.map((item, itemIndex) => ({
+      ...item,
+      id: item.id || item.itemId || createItineraryItemId(dayNumber, itemIndex),
+      order: itemIndex + 1,
+    }));
+  });
+
+  return itinerary;
+}
+
+function createItineraryItemId(dayNumber, itemIndex) {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  return `day-${dayNumber}-item-${itemIndex + 1}-${Date.now()}-${Math.random()
+    .toString(16)
+    .slice(2)}`;
+}
+
+function getItineraryDays(itinerary) {
+  return Array.isArray(itinerary?.days) ? itinerary.days : [];
+}
+
+function findDayByNumber(itinerary, dayNumber) {
+  return getItineraryDays(itinerary).find(
+    (day) => Number(day.day) === Number(dayNumber),
+  );
+}
+
+function getFirstDayNumber(itinerary) {
+  const firstDay = getItineraryDays(itinerary)[0];
+
+  return Number(firstDay?.day) || 1;
+}
+
+function ensureValidSelectedDay(itinerary, dayNumber) {
+  const matchedDay = findDayByNumber(itinerary, dayNumber);
+
+  if (matchedDay) {
+    return Number(matchedDay.day);
+  }
+
+  return getFirstDayNumber(itinerary);
 }
 
 function renderEmptyState(
@@ -1022,6 +1366,259 @@ function getIconByCategory(category = "") {
   }
 
   return "🗺️";
+}
+
+function openEditItineraryModal({ day, item, itemIndex }) {
+  closeEditItineraryModal();
+  removeEditModalEscapeHandler();
+
+  const dayNumber = day?.day || resultState.selectedDay;
+  const order = item?.order || itemIndex + 1;
+
+  const lat = item.lat ?? item.latitude ?? "";
+  const lng = item.lng ?? item.longitude ?? "";
+
+  const modal = document.createElement("div");
+  modal.className = "itinerary-edit-modal-backdrop";
+  modal.setAttribute("role", "presentation");
+
+  modal.innerHTML = `
+    <div
+      class="itinerary-edit-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="editItineraryModalTitle"
+    >
+      <div class="itinerary-edit-modal__header">
+        <div>
+          <p class="itinerary-edit-modal__eyebrow">Day ${escapeHtml(dayNumber)} · ${escapeHtml(order)}번째 일정</p>
+          <h3 id="editItineraryModalTitle">일정 수정</h3>
+        </div>
+        <button
+          class="itinerary-edit-modal__close"
+          type="button"
+          aria-label="수정 창 닫기"
+          data-edit-close
+        >
+          ×
+        </button>
+      </div>
+
+      <form class="itinerary-edit-form">
+        <label>
+          <span>장소명</span>
+            <div class="itinerary-place-search-row">
+              <input
+                type="text"
+                name="placeName"
+                value="${escapeHtml(item.placeName || "")}"
+                placeholder="예: 섭지코지"
+                required
+              />
+              <button
+                class="itinerary-place-search-button"
+                type="button"
+                data-place-search
+              >
+                장소 검색
+              </button>
+            </div>
+        </label>
+
+        <div
+          class="itinerary-place-search-results"
+          data-place-search-results
+          aria-live="polite"
+          hidden
+        ></div>
+
+        <label>
+          <span>주소</span>
+          <input
+            type="text"
+            name="address"
+            value="${escapeHtml(item.address || "")}"
+            placeholder="예: 제주 서귀포시 성산읍 ..."
+          />
+        </label>
+
+        <label>
+          <span>카테고리</span>
+          <input
+            type="text"
+            name="category"
+            value="${escapeHtml(item.category || "")}"
+            placeholder="예: 관광지, 식당, 카페"
+          />
+        </label>
+
+        <label>
+          <span>추천 이유 / 메모</span>
+          <textarea
+            name="reason"
+            rows="4"
+            placeholder="이 장소를 일정에 넣는 이유를 적어주세요."
+          >${escapeHtml(item.reason || "")}</textarea>
+        </label>
+
+        <div class="itinerary-edit-form__grid">
+          <label>
+            <span>위도</span>
+            <input
+              type="number"
+              step="any"
+              name="lat"
+              value="${escapeHtml(lat)}"
+              placeholder="예: 33.4305"
+            />
+          </label>
+
+          <label>
+            <span>경도</span>
+            <input
+              type="number"
+              step="any"
+              name="lng"
+              value="${escapeHtml(lng)}"
+              placeholder="예: 126.9278"
+            />
+          </label>
+        </div>
+
+        <div class="itinerary-edit-modal__notice">
+          장소명을 변경하는 경우 지도 위치가 어긋나지 않도록 위도와 경도도 함께 확인해 주세요.
+  위도/경도를 비워두면 기존 좌표를 유지합니다.
+        </div>
+
+        <div class="itinerary-edit-modal__actions">
+          <button type="button" class="ghost-button" data-edit-close>
+            취소
+          </button>
+          <button type="submit" class="primary-button">
+            저장
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  document.body.append(modal);
+  document.body.classList.add("is-modal-open");
+
+  modal.querySelector("input[name='placeName']")?.focus();
+
+  modal.querySelectorAll("[data-edit-close]").forEach((button) => {
+    button.addEventListener("click", closeEditItineraryModal);
+  });
+
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) {
+      closeEditItineraryModal();
+    }
+  });
+
+  modal
+    .querySelector(".itinerary-edit-form")
+    ?.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const form = event.currentTarget;
+      const formData = new FormData(form);
+
+      const placeName = getTrimmedFormValue(formData, "placeName");
+      const address = getTrimmedFormValue(formData, "address");
+      const category = getTrimmedFormValue(formData, "category");
+      const reason = getTrimmedFormValue(formData, "reason");
+
+      const lat = parseOptionalNumber(formData.get("lat"));
+      const lng = parseOptionalNumber(formData.get("lng"));
+
+      if (!placeName) {
+        showToast("장소명을 입력해 주세요.");
+        form.querySelector("[name='placeName']")?.focus();
+        return;
+      }
+
+      if ((lat === null && lng !== null) || (lat !== null && lng === null)) {
+        showToast("위도와 경도는 함께 입력해 주세요.");
+        return;
+      }
+
+      if (lat !== null && (lat < -90 || lat > 90)) {
+        showToast("위도는 -90부터 90 사이의 값이어야 합니다.");
+        return;
+      }
+
+      if (lng !== null && (lng < -180 || lng > 180)) {
+        showToast("경도는 -180부터 180 사이의 값이어야 합니다.");
+        return;
+      }
+
+      let didUpdate = false;
+
+      updateEditableItinerary(
+        (itinerary) => {
+          const target = findItineraryItemInItinerary(
+            itinerary,
+            item.id,
+            Number(dayNumber),
+            Number(order),
+          );
+
+          if (!target?.item) return;
+
+          target.item.placeName = placeName;
+          target.item.address = address;
+          target.item.category = category;
+          target.item.reason = reason;
+          target.item.isUserEdited = true;
+          target.item.editedAt = new Date().toISOString();
+
+          if (lat !== null && lng !== null) {
+            target.item.lat = lat;
+            target.item.lng = lng;
+            target.item.latitude = lat;
+            target.item.longitude = lng;
+          }
+
+          didUpdate = true;
+        },
+        {
+          updateMap: true,
+          scrollTimeline: false,
+        },
+      );
+
+      if (!didUpdate) {
+        showToast("수정할 일정을 찾지 못했습니다.");
+        return;
+      }
+
+      closeEditItineraryModal();
+      showToast("일정이 수정되었습니다.");
+    });
+
+  const handleEscape = (event) => {
+    if (event.key === "Escape") {
+      closeEditItineraryModal();
+    }
+  };
+
+  activeEditModalEscapeHandler = handleEscape;
+  document.addEventListener("keydown", handleEscape);
+}
+
+function closeEditItineraryModal() {
+  document.querySelector(".itinerary-edit-modal-backdrop")?.remove();
+  document.body.classList.remove("is-modal-open");
+  removeEditModalEscapeHandler();
+}
+
+function removeEditModalEscapeHandler() {
+  if (!activeEditModalEscapeHandler) return;
+
+  document.removeEventListener("keydown", activeEditModalEscapeHandler);
+  activeEditModalEscapeHandler = null;
 }
 
 function showToast(message) {
