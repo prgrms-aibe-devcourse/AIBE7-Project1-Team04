@@ -149,8 +149,7 @@ async function renderKakaoMaps(spots, estimatedLocationName = null) {
     const container = document.getElementById(`map-${index}`);
     if (!container) continue;
 
-    const searchQuery = `${spot.name} ${spot.region || ""}`.trim();
-
+    const searchQuery = spot.region ? `${spot.region} ${spot.name}` : spot.name;
     try {
       const results = await searchKakaoPlaces(searchQuery);
       if (results && results.length > 0) {
@@ -382,8 +381,8 @@ async function analyzeMood() {
     // 추가 안정화
     await new Promise((r) => setTimeout(r, 100));
 
-    await renderKakaoMaps(data.recommendation.spots, null);
     resultEl.classList.add("visible");
+    await renderKakaoMaps(data.recommendation.spots, null);
     setStatus(statusEl, "분석 완료");
   } catch (error) {
     if (requestId !== state.requestId) return;
