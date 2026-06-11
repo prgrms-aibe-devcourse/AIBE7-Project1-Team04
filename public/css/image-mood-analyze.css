@@ -1,0 +1,357 @@
+/* =====================================================
+   image-mood-analyze.css
+   분위기 기반 여행지 추천 페이지 전용 스타일
+   location 버전과의 차이: .mood-tags / .mood-tag 추가,
+   .meta-row / .meta-badge 제거 (분위기 페이지 미사용)
+===================================================== */
+
+:root {
+  --bg-1: #f6f7fb;
+  --bg-2: #eef2ff;
+  --text: #111827;
+  --muted: #6b7280;
+  --line: #dbe2ef;
+  --primary: #1d4ed8;
+  --primary-2: #2563eb;
+  --card: rgba(255, 255, 255, 0.86);
+  --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  --radius: 24px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, #ffffff 0, rgba(255, 255, 255, 0) 34%),
+    radial-gradient(
+      circle at right 15%,
+      rgba(59, 130, 246, 0.14),
+      rgba(59, 130, 246, 0) 32%
+    ),
+    linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+}
+
+.shell {
+  max-width: 1100px;
+}
+
+/* ── 카드/레이아웃 공통 ── */
+
+.glass-card {
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  background: var(--card);
+  backdrop-filter: blur(18px);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.page {
+  display: none;
+}
+
+.page.active {
+  display: block;
+}
+
+/* ── 헤더 영역 ── */
+
+.page-title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  margin-bottom: 12px;
+}
+
+.page-desc {
+  color: var(--muted);
+  max-width: 64ch;
+  line-height: 1.65;
+}
+
+.back-btn {
+  border: 1px solid var(--line);
+  background: white;
+  border-radius: 14px;
+  padding: 11px 16px;
+  font-weight: 700;
+}
+
+/* ── 업로드 박스 ── */
+
+.upload-box {
+  width: 100%;
+  min-height: 230px;
+  border-radius: 22px;
+  border: 2px dashed #c7d2fe;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(238, 242, 255, 0.54) 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.upload-box:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+}
+
+.upload-box.has-image {
+  border-style: solid;
+  border-color: rgba(29, 78, 216, 0.18);
+  background: white;
+}
+
+.upload-placeholder {
+  padding: 20px;
+  text-align: center;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.upload-placeholder svg {
+  display: block;
+  margin: 0 auto 12px;
+  opacity: 0.55;
+}
+
+.preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.section-label {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+/* ── 결과 영역 ── */
+
+.result {
+  display: none;
+}
+
+.result.visible {
+  display: block;
+}
+
+/* ── 분위기 태그 (mood 페이지 전용) ── */
+
+.mood-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mood-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  background: rgba(29, 78, 216, 0.08);
+  color: var(--primary);
+}
+
+/* ── 여행 카드 ── */
+
+.travel-grid {
+  margin-top: 20px;
+}
+
+.travel-card {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: #ffffff;
+  box-shadow:
+    0 10px 25px -5px rgba(15, 23, 42, 0.04),
+    0 8px 16px -6px rgba(15, 23, 42, 0.04);
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.travel-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.12);
+}
+
+.travel-map {
+  width: 100%;
+  height: 200px !important;
+  background: #f1f5f9;
+  position: relative;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.travel-card-body {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  justify-content: space-between;
+}
+
+.travel-card-head {
+  margin-bottom: 14px;
+}
+
+.travel-card-title {
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.travel-card-subtitle {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.06);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.travel-reason {
+  margin: 0 0 24px 0;
+  color: #475569;
+  line-height: 1.65;
+  font-size: 0.92rem;
+  font-weight: 400;
+  word-break: keep-all;
+}
+
+.spot-action-btn {
+  width: 100%;
+  padding: 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.spot-action-btn:hover {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+}
+
+.map-info-window {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  font-family: sans-serif;
+  text-align: center;
+}
+
+/* ── 상태 / 에러 ── */
+
+.error-box {
+  display: none;
+  border-radius: 18px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 14px 16px;
+}
+
+.error-box.visible {
+  display: block;
+}
+
+.status {
+  min-height: 1.4em;
+  color: #475569;
+  font-weight: 600;
+}
+
+.status-dots::after {
+  content: "";
+  animation: dots 1.2s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0% {
+    content: "";
+  }
+  25% {
+    content: ".";
+  }
+  50% {
+    content: "..";
+  }
+  75% {
+    content: "...";
+  }
+}
+
+/* ── 애니메이션 ── */
+
+.fade-up {
+  animation: fadeUp 0.45s ease both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── 반응형 ── */
+
+@media (max-width: 991.98px) {
+  .travel-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .travel-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .travel-card-body {
+    padding: 18px 16px;
+  }
+}

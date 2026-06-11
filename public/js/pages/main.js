@@ -24,8 +24,8 @@ function setupHeroButtons() {
 
   if (isLoggedIn) {
     btns.innerHTML = `
-      <a href="/pages/image-analyze.html" class="btn-hero-outline">위치 기반 추천 시작</a>
-      <a href="/pages/itinerary-create.html" class="btn-hero-fill">분위기 기반 추천 시작</a>
+      <a href="/pages/image-location-analyze.html" class="btn-hero-outline">위치 기반 추천 시작</a>
+      <a href="/pages/image-mood-analyze.html" class="btn-hero-fill">분위기 기반 추천 시작</a>
     `;
   } else {
     btns.innerHTML = `

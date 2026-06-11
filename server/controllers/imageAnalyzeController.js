@@ -1,11 +1,9 @@
-const express = require("express");
-const router = express.Router();
-const exifr = require("exifr");
 const dotenv = require("dotenv");
 const { z } = require("zod");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { PromptTemplate } = require("@langchain/core/prompts");
 const { StructuredOutputParser } = require("@langchain/core/output_parsers");
+const { ChatGroq } = require("@langchain/groq");
 
 const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
 const gemini = new ChatGoogleGenerativeAI({
@@ -17,6 +15,12 @@ const gemini = new ChatGoogleGenerativeAI({
 const gemma = new ChatGoogleGenerativeAI({
   apiKey,
   model: "gemma-4-31b-it",
+  temperature: 0,
+});
+
+const groq = new ChatGroq({
+  apiKey: process.env.GROQ_API_KEY,
+  model: "llama-3.3-70b-versatile",
   temperature: 0,
 });
 
@@ -45,7 +49,7 @@ const recommendationParser = StructuredOutputParser.fromZodSchema(
     spots: z.array(
       z.object({
         name: z.string(),
-        country: z.string().optional().default(""),
+        region: z.string(),
         reason: z.string(),
       }),
     ),
@@ -93,12 +97,23 @@ function base64ToBuffer(input) {
 async function analyzeLocationWithGemini(base64Image, hint = "") {
   const prompt = new PromptTemplate({
     template: `
-사진을 보고 위치와 좌표를 추정해 주세요.
+당신은 이미지 분석 전문가입니다.
+
+주어진 사진을 보고 해당 사진이 촬영된 **여행지(관광지/명소/핫플레이스)**를 추정하세요.
 
 힌트:
 {hint}
 
-반드시 JSON만 반환하고 schema를 지켜 주세요.
+반드시 지켜야 할 규칙:
+- 결과는 반드시 한국어로 작성합니다.
+- 반드시 "실제 존재하는 여행지 이름"을 반환합니다.
+- 행정구역(시/도 + 시/군/구)을 반드시 포함합니다.
+  예: "서울특별시 종로구 경복궁", "제주특별자치도 제주시 성산일출봉"
+- 너무 큰 행정구역(예: 서울, 부산)만 단독으로 반환하지 마세요.
+- 가장 가능성 높은 장소 1개만 선택합니다.
+- 설명 없이 결과만 반환합니다.
+- 반드시 JSON 형식만 반환합니다.
+- schema를 반드시 따릅니다.
 
 {format_instructions}
 `,
@@ -174,7 +189,7 @@ async function analyzeMoodWithGemini(base64Image, extra = "") {
 
 async function recommendTravelPlace(prompt) {
   try {
-    const response = await gemma.invoke([
+    const response = await groq.invoke([
       {
         role: "user",
         content: [{ type: "text", text: prompt }],
@@ -189,7 +204,7 @@ async function recommendTravelPlace(prompt) {
       spots: [
         {
           name: "추천 여행지",
-          country: "",
+          region: "대한민국",
           reason: "추천 결과를 생성하지 못해 기본 응답을 반환했습니다.",
         },
       ],
@@ -201,8 +216,8 @@ function fallbackRecommendation(region = "알 수 없음") {
   return {
     spots: [
       {
-        name: region,
-        country: "",
+        name: "추천 여행지",
+        region,
         reason: "기본 추천 정보를 반환했습니다.",
       },
     ],
@@ -215,43 +230,6 @@ async function findLocation(req, res, next) {
 
     if (!image) {
       return res.status(400).json({ error: "image is required" });
-    }
-
-    const imageBuffer = base64ToBuffer(image);
-    const gps = await exifr.gps(imageBuffer);
-
-    if (
-      gps &&
-      Number.isFinite(gps.latitude) &&
-      Number.isFinite(gps.longitude) &&
-      !Number.isNaN(gps.latitude) &&
-      !Number.isNaN(gps.longitude)
-    ) {
-      const recommendation = await recommendTravelPlace(`
-위도: ${gps.latitude}
-경도: ${gps.longitude}
-
-이 위치를 기준으로 한국 여행지 3곳을 추천해 주세요.
-
-반드시 JSON만 반환
-
-{
-  "spots": [
-    {
-      "name": "",
-      "country": "",
-      "reason": ""
-    }
-  ]
-}
-`);
-
-      return res.json({
-        source: "EXIF",
-        latitude: gps.latitude,
-        longitude: gps.longitude,
-        recommendation,
-      });
     }
 
     let historyHint = "";
@@ -268,7 +246,7 @@ async function findLocation(req, res, next) {
         parsed = null;
       }
 
-      if (parsed && parsed.confidence >= 80) {
+      if (parsed && parsed.confidence >= 90) {
         break;
       }
 
@@ -289,17 +267,44 @@ async function findLocation(req, res, next) {
 추정 위치:
 ${safeLocation.region}
 
-위도:
-${safeLocation.latitude}
-
-경도:
-${safeLocation.longitude}
+당신은 대한민국 최고의 국내 여행 가이드입니다.
+제시된 조건을 바탕으로, 카카오맵/네이버 지도에서 '실제 검색 및 위치 조회가 가능한' 한국의 구체적인 여행지 3곳을 추천해 주세요.
 
 이 지역과 어울리는 한국 여행지 3곳을 추천해 주세요.
 
-반드시 JSON만 반환
+⚠️ [필수 준수 규칙 - 위반 시 에러]
+1. 존엄성 및 실존 주의:
+   - 절대로 가상의 장소, 미사여구로 꾸며낸 장소를 지어내지 마십시오. (X: "낭만적인 부산 밤바다 거리", "조용한 제주 돌담길")
+   - 반드시 지도 앱에 등록되어 있는 실제 상호명, 공공 관광지명, 명소 고유 명사만 사용하십시오. (O: "광안리해수욕장", "감천문화마을", "신창풍차해안도로")
 
-{ "spots": [ { "name": "", "reason": "" } ] }
+2. 추천 단위 제한:
+   - "부산 영도구", "제주 서귀포시" 같은 행정구역 자체를 name에 넣지 마십시오. 반드시 구체적인 명소여야 합니다.
+
+3. 데이터 매핑 규칙:
+   - "name": 지도 앱에 검색할 '최종 목적지 고유 명칭'만 명확히 작성 (예: "해운대 블루라인파크")
+   - "region": 해당 명소가 위치한 '시/도 + 시/군/구'까지 정확한 행정구역 작성 (예: "부산광역시 해운대구")
+   - "reason": 왜 이 장소를 추천하는지 이유를 친절하게 설명
+
+4. 명소 명칭의 무단 축약 및 변형 금지 (매우 중요):
+   - 인터넷 검색 및 지도 앱에 등록된 '정식 풀네임(Official Full Name)'을 그대로 적으십시오.
+   - 접미사(호수, 저수지, 해수욕장, 평야, 생태공원 등)를 절대로 마음대로 생략하거나 축약하지 마십시오.
+   - 예시 오류 교정:
+     * (X) 반월호 -> (O) 반월호수
+     * (X) 백운호 -> (O) 백운호수
+     * (X) 광안리 -> (O) 광안리해수욕장
+     * (X) 일산공원 -> (O) 일산호수공원
+   - 지형이나 상호명의 끝 글자 하나가 달라지면 지도 API가 장소를 찾지 못하므로, 반드시 정확한 풀네임인지 검증 후 출력하세요.
+반드시 아래 JSON 포맷 표준을 준수하여 JSON 데이터만 반환하세요. 다른 텍스트는 절대 포함하지 마십시오.
+
+{
+  "spots": [
+    {
+      "name": "명소 고유 명칭",
+      "region": "행정구역명",
+      "reason": "추천 사유 설명"
+    }
+  ]
+}
 `);
 
     return res.json({
@@ -345,21 +350,47 @@ ${JSON.stringify(moodTags, null, 2)}
 추가사항:
 ${extra || "(없음)"}
 
+당신은 대한민국 최고의 국내 여행 가이드입니다.
+제시된 조건을 바탕으로, 카카오맵/네이버 지도에서 '실제 검색 및 위치 조회가 가능한' 한국의 구체적인 여행지 3곳을 추천해 주세요.
+
 이 분위기와 조건에 맞는 한국 여행지 3곳을 추천해 주세요.
 
-반드시 JSON만 반환
+⚠️ [필수 준수 규칙 - 위반 시 에러]
+1. 존엄성 및 실존 주의:
+   - 절대로 가상의 장소, 미사여구로 꾸며낸 장소를 지어내지 마십시오. (X: "낭만적인 부산 밤바다 거리", "조용한 제주 돌담길")
+   - 반드시 지도 앱에 등록되어 있는 실제 상호명, 공공 관광지명, 명소 고유 명사만 사용하십시오. (O: "광안리해수욕장", "감천문화마을", "신창풍차해안도로")
+
+2. 추천 단위 제한:
+   - "부산 영도구", "제주 서귀포시" 같은 행정구역 자체를 name에 넣지 마십시오. 반드시 구체적인 명소여야 합니다.
+
+3. 데이터 매핑 규칙:
+   - "name": 지도 앱에 검색할 '최종 목적지 고유 명칭'만 명확히 작성 (예: "해운대 블루라인파크")
+   - "region": 해당 명소가 위치한 '시/도 + 시/군/구'까지 정확한 행정구역 작성 (예: "부산광역시 해운대구")
+   - "reason": 왜 이 장소를 추천하는지 이유를 친절하게 설명
+
+4. 명소 명칭의 무단 축약 및 변형 금지 (매우 중요):
+- 인터넷 검색 및 지도 앱에 등록된 '정식 풀네임(Official Full Name)'을 그대로 적으십시오.
+- 접미사(호수, 저수지, 해수욕장, 평야, 생태공원 등)를 절대로 마음대로 생략하거나 축약하지 마십시오.
+- 예시 오류 교정:
+  * (X) 반월호 -> (O) 반월호수
+  * (X) 백운호 -> (O) 백운호수
+  * (X) 광안리 -> (O) 광안리해수욕장
+  * (X) 일산공원 -> (O) 일산호수공원
+- 지형이나 상호명의 끝 글자 하나가 달라지면 지도 API가 장소를 찾지 못하므로, 반드시 정확한 풀네임인지 검증 후 출력하세요.
+
+반드시 아래 JSON 포맷 표준을 준수하여 JSON 데이터만 반환하세요. 다른 텍스트는 절대 포함하지 마십시오.
 
 {
   "spots": [
     {
-      "name": "",
-      "country": "",
-      "reason": ""
+      "name": "명소 고유 명칭",
+      "region": "행정구역명",
+      "reason": "추천 사유 설명"
     }
   ]
 }
 `);
-
+    console.log(recommendation);
     return res.json({
       moodTags,
       recommendation,

@@ -1,16 +1,19 @@
 const { buildItineraryPrompt } = require("../ai/prompt");
 const { generateItinerary: generateAiItinerary } = require("../ai/aiClient");
 const { createMockItinerary } = require("../ai/mockItinerary");
+const { verifyItineraryPlaces } = require("../ai/placeVerifier");
 
 async function generateItinerary(req, res, next) {
   try {
     const payload = req.body;
     const prompt = buildItineraryPrompt(payload);
 
-    const itinerary = await generateAiItinerary({
+    const rawItinerary = await generateAiItinerary({
       provider: payload.provider,
       prompt,
     });
+
+    const itinerary = await verifyItineraryPlaces(rawItinerary, payload);
 
     res.json({
       ok: true,
