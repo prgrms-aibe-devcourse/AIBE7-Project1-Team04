@@ -13,48 +13,36 @@
   </head>
   <body>
     <div id="site-header"></div>
+    <main class="itinerary-result-page">
+      <section class="result result--split" aria-live="polite">
+        <div class="result-page-actions" aria-label="결과 페이지 작업">
+          <a
+            class="ghost-button result-toolbar__button"
+            href="/pages/itinerary-create.html"
+          >
+            조건 새로 입력
+          </a>
 
-    <main>
-      <nav class="page-progress" aria-label="일정 생성 단계">
-        <span class="page-progress__item is-done">1 조건 입력</span>
-        <span class="page-progress__line is-done"></span>
-        <span class="page-progress__item is-done">2 AI 생성</span>
-        <span class="page-progress__line is-done"></span>
-        <span class="page-progress__item is-active">3 결과 확인</span>
-      </nav>
+          <a
+            class="secondary-button result-toolbar__button"
+            href="/pages/itinerary-loading.html"
+            id="retryButton"
+          >
+            같은 조건으로 다시 생성
+          </a>
 
-      <div class="result-toolbar" aria-label="결과 페이지 작업">
-        <a
-          class="ghost-button result-toolbar__button"
-          href="/pages/itinerary-create.html"
-          >조건 새로 입력</a
-        >
-        <a
-          class="secondary-button result-toolbar__button"
-          href="/pages/itinerary-loading.html"
-          id="retryButton"
-          >같은 조건으로 다시 생성</a
-        >
-        <button
-          class="primary-button result-toolbar__button"
-          type="button"
-          id="saveButton"
-          >내 계정에 저장</button
-        >
-        <button
-          class="ghost-button result-toolbar__button"
-          type="button"
-          id="shareButton"
-          aria-label="현재 일정 공유하기"
-          >↗ 공유</button
-        >
-      </div>
+          <button
+            class="primary-button result-toolbar__button"
+            type="button"
+            id="saveButton"
+          >
+            내 계정에 저장
+          </button>
+        </div>
 
-      <section class="result" aria-live="polite">
         <div id="resultContainer"></div>
       </section>
     </main>
-
     <template id="emptyImageTemplate">
       <div class="card-thumb card-thumb--placeholder" aria-hidden="true">⌁</div>
     </template>

@@ -1,8 +1,21 @@
 const NAV_ITEMS = [
   { key: "home", href: "/", label: "홈" },
-  { key: "image-location-analyze", href: "/pages/image-location-analyze.html", label: "위치 기반 추천" },
-  { key: "image-mood-analyze", href: "/pages/image-mood-analyze.html", label: "분위기 기반 추천" },
-  { key: "itinerary-create", href: "/pages/itinerary-create.html", label: "여행 계획" },
+  {
+    key: "image-location-analyze",
+    href: "/pages/image-location-analyze.html",
+    label: "위치 기반 추천",
+  },
+  {
+    key: "image-mood-analyze",
+    href: "/pages/image-mood-analyze.html",
+    label: "분위기 기반 추천",
+  },
+  {
+    key: "itinerary-create",
+    href: "/pages/itinerary-create.html",
+    label: "여행 계획",
+    entryMode: "fresh",
+  },
   { key: "my-trips", href: "/pages/my-trips.html", label: "마이페이지" },
 ];
 
@@ -23,10 +36,20 @@ function getNickname(session) {
 }
 
 function buildMarkup(active) {
-  const navHtml = NAV_ITEMS.map(
-    (item) =>
-      `<li><a href="${item.href}"${item.key === active ? ' class="nav-active"' : ""}>${item.label}</a></li>`,
-  ).join("");
+  const navHtml = NAV_ITEMS.map((item) => {
+    const activeClass = item.key === active ? ' class="nav-active"' : "";
+    const entryModeAttr = item.entryMode
+      ? ` data-planner-entry="${item.entryMode}"`
+      : "";
+
+    return `
+    <li>
+      <a href="${item.href}"${activeClass}${entryModeAttr}>
+        ${item.label}
+      </a>
+    </li>
+  `;
+  }).join("");
 
   return `
     <header class="main-header">
@@ -105,13 +128,32 @@ function bindAuthUi(session) {
   });
 }
 
+function bindPlannerEntryLinks() {
+  document.querySelectorAll("[data-planner-entry]").forEach((link) => {
+    link.addEventListener("click", () => {
+      const entryMode = link.dataset.plannerEntry;
+
+      sessionStorage.setItem("itineraryEntryMode", entryMode);
+
+      if (entryMode === "fresh") {
+        sessionStorage.removeItem("selectedSpot");
+        sessionStorage.removeItem("name");
+      }
+    });
+  });
+}
+
 export function renderHeader({ active = null, mount = "#site-header" } = {}) {
   const target =
     typeof mount === "string" ? document.querySelector(mount) : mount;
   if (!target) return null;
 
   const session = getSession();
+
   target.innerHTML = buildMarkup(active);
+
   bindAuthUi(session);
+  bindPlannerEntryLinks();
+
   return { session, isLoggedIn: Boolean(session?.access_token) };
 }

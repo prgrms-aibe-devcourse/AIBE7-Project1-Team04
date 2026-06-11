@@ -1,6 +1,14 @@
 import { clearItinerary, loadPayload, savePayload } from "./itinerary-state.js";
 
 const DEFAULT_PROVIDER = "gemini";
+const ENTRY_MODE_KEY = "itineraryEntryMode";
+
+const ENTRY_MODE = {
+  FRESH: "fresh",
+  IMAGE: "image",
+  CLEAR_NOTES_ONLY: "clearNotesOnly",
+};
+
 const form = document.querySelector("#plannerForm");
 
 restorePreviousPayload();
@@ -21,55 +29,59 @@ form.addEventListener("submit", (event) => {
 });
 
 function restorePreviousPayload() {
+  const entryMode = consumeEntryMode();
   const payload = loadPayload() || {};
   const selectedSpot = getSelectedSpotFromSession();
 
-  const basePayload = {
-    ...payload,
-    notes: cleanImageAnalyzeNotes(payload.notes),
-    provider: DEFAULT_PROVIDER,
+  // 1. main → itinerary-create
+  // 완전히 새 여행 작성
+  if (entryMode === ENTRY_MODE.FRESH) {
+    const emptyPayload = createDefaultPayload();
 
-    budgetAmount: payload.budgetAmount || extractBudgetAmount(payload.budget),
-    budgetType: payload.budgetType || extractBudgetType(payload.budget),
-  };
+    applyPayloadToForm(emptyPayload);
+    savePayload(emptyPayload);
+    clearItinerary();
+    clearSelectedSpotSession();
+    return;
+  }
 
-  const nextPayload = selectedSpot
-    ? {
-        ...basePayload,
+  // 2. image-location / image-mood → itinerary-create
+  // 전체 초기화 후 이미지 분석 결과의 name, region만 반영
+  if (entryMode === ENTRY_MODE.IMAGE && selectedSpot) {
+    const imagePayload = {
+      ...createDefaultPayload(),
+      keyword: selectedSpot.name,
+      destination: selectedSpot.region || selectedSpot.name,
+      notes: "",
+    };
 
-        // selectedSpot.name → keyword
-        keyword: selectedSpot.name,
+    applyPayloadToForm(imagePayload);
+    savePayload(imagePayload);
+    clearItinerary();
+    clearSelectedSpotSession();
+    return;
+  }
 
-        // selectedSpot.region → destination
-        destination: selectedSpot.region || selectedSpot.name,
+  // 3. itinerary-result → itinerary-create
+  // 기존 조건은 유지하고 추가 조건만 초기화
+  if (entryMode === ENTRY_MODE.CLEAR_NOTES_ONLY) {
+    const nextPayload = normalizePayload({
+      ...payload,
+      notes: "",
+    });
 
-        // 이미지 분석에서 새로 넘어온 경우 추가 조건 초기화
-        notes: "",
-      }
-    : basePayload;
+    applyPayloadToForm(nextPayload);
+    savePayload(nextPayload);
+    return;
+  }
+
+  // 4. 일반 재진입
+  // 기존 조건 복원
+  const nextPayload = normalizePayload(payload);
 
   if (Object.keys(nextPayload).length === 0) return;
 
-  setFieldValue("keyword", nextPayload.keyword);
-  setFieldValue("destination", nextPayload.destination);
-  setFieldValue("departure", nextPayload.departure);
-  setFieldValue("days", nextPayload.days);
-  setFieldValue("people", nextPayload.people);
-
-  setFieldValue("budgetAmount", nextPayload.budgetAmount);
-  setRadioValue("budgetType", nextPayload.budgetType || "perPerson");
-
-  setFieldValue("provider", DEFAULT_PROVIDER);
-
-  // selectedSpot이 있으면 여기서 빈 문자열이 들어가므로 textarea가 초기화됨
-  setFieldValue("notes", nextPayload.notes);
-
-  if (selectedSpot) {
-    savePayload(nextPayload);
-    sessionStorage.removeItem("selectedSpot");
-    sessionStorage.removeItem("name");
-    return;
-  }
+  applyPayloadToForm(nextPayload);
 
   const shouldSave =
     payload.notes !== nextPayload.notes ||
@@ -79,6 +91,54 @@ function restorePreviousPayload() {
   if (shouldSave) {
     savePayload(nextPayload);
   }
+}
+
+function consumeEntryMode() {
+  const mode = sessionStorage.getItem(ENTRY_MODE_KEY);
+  sessionStorage.removeItem(ENTRY_MODE_KEY);
+  return mode;
+}
+
+function createDefaultPayload() {
+  return {
+    keyword: "",
+    destination: "",
+    departure: "",
+    days: 3,
+    people: 2,
+    budget: "",
+    budgetAmount: "",
+    budgetType: "perPerson",
+    provider: DEFAULT_PROVIDER,
+    notes: "",
+  };
+}
+
+function normalizePayload(payload = {}) {
+  return {
+    ...payload,
+    notes: cleanImageAnalyzeNotes(payload.notes),
+    provider: DEFAULT_PROVIDER,
+    budgetAmount: payload.budgetAmount || extractBudgetAmount(payload.budget),
+    budgetType: payload.budgetType || extractBudgetType(payload.budget),
+  };
+}
+
+function applyPayloadToForm(payload) {
+  setFieldValue("keyword", payload.keyword);
+  setFieldValue("destination", payload.destination);
+  setFieldValue("departure", payload.departure);
+  setFieldValue("days", payload.days);
+  setFieldValue("people", payload.people);
+  setFieldValue("budgetAmount", payload.budgetAmount);
+  setRadioValue("budgetType", payload.budgetType || "perPerson");
+  setFieldValue("provider", DEFAULT_PROVIDER);
+  setFieldValue("notes", payload.notes);
+}
+
+function clearSelectedSpotSession() {
+  sessionStorage.removeItem("selectedSpot");
+  sessionStorage.removeItem("name");
 }
 
 function getSelectedSpotFromSession() {
