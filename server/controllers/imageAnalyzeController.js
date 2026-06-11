@@ -88,18 +88,6 @@ const moodParser = StructuredOutputParser.fromZodSchema(
   }),
 );
 
-// const recommendationParser = StructuredOutputParser.fromZodSchema(
-//   z.object({
-//     spots: z.array(
-//       z.object({
-//         name: z.string(),
-//         region: z.string(),
-//         reason: z.string(),
-//       }),
-//     ),
-//   }),
-// );
-
 const recommendationSchema = z.object({
   spots: z.array(
     z.object({
@@ -206,18 +194,17 @@ async function analyzeAndVerifyLocation(base64Image, userHint = "") {
       sido: "기록되지 않음",
       sigungu: "알 수 없음",
       spot_name: "관광 명소",
-      confidence: 0.5, // 👈 파싱 에러 시 적용할 기본 신뢰도
+      confidence: 0.5,
     };
   }
 
   const detectedLocation = `${imageAnalysisResult.sido} ${imageAnalysisResult.sigungu} ${imageAnalysisResult.spot_name}`;
 
-  // 👇 [여기 중요!] 힌트가 없을 때 이미지 자체의 신뢰도를 실어서 반환하도록 변경
   if (!userHint || userHint.trim() === "") {
     return {
       success: true,
       location: detectedLocation,
-      confidence: imageAnalysisResult.confidence ?? 0.75, // 👈 추가된 부분
+      confidence: imageAnalysisResult.confidence ?? 0.75,
       message: "힌트가 없어 이미지로만 분석했습니다.",
     };
   }
