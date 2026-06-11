@@ -6,6 +6,7 @@ const { StructuredOutputParser } = require("@langchain/core/output_parsers");
 const { ChatGroq } = require("@langchain/groq");
 
 const { verifyPlaceWithKakao } = require("../ai/kakaoLocalClient");
+dotenv.config();
 
 const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
 const gemini = new ChatGoogleGenerativeAI({
@@ -22,19 +23,39 @@ const gemma = new ChatGoogleGenerativeAI({
 
 const groq = new ChatGroq({
   apiKey: process.env.GROQ_API_KEY,
-  model: "llama-3.3-70b-versatile",
+  model: "openai/gpt-oss-120b",
   temperature: 0,
-  topP: 0.1,
 });
 
-dotenv.config();
-
+// 1단계: 순수 이미지 분석용 파서
 const locationParser = StructuredOutputParser.fromZodSchema(
   z.object({
-    region: z.string(),
-    latitude: z.number(),
-    longitude: z.number(),
-    confidence: z.number(),
+    sido: z.string().describe("시/도 (예: 서울특별시, 제주특별자치도)"),
+    sigungu: z.string().describe("시/군/구 (예: 종로구, 제주시)"),
+    spot_name: z.string().describe("상세 명소 이름 (예: 경복궁, 성산일출봉)"),
+  }),
+);
+
+const verificationParser = StructuredOutputParser.fromZodSchema(
+  z.object({
+    is_matching: z
+      .boolean()
+      .describe(
+        "이미지 분석 결과와 유저 힌트가 '확정적이고 명백하게' 충돌할 때만 false를 반환하세요. 유저가 헷갈려하거나 의문문을 쓰거나, '드라마 촬영지'처럼 모호하지만 충돌하지 않는 단서를 준 경우에는 무조건 true를 반환해야 합니다.",
+      ),
+    final_location: z
+      .string()
+      .describe(
+        "최종 결정된 행정구역 포함 장소명. 힌트가 거짓말이거나 헷갈려하는 상태면 [사진 분석 결과]의 장소를 그대로 적고, 힌트가 확실하게 장소를 구체화(예: 동탄호수공원 + '루나쇼 하는 곳')해 준 경우에만 힌트를 조합한 장소명을 적으세요.",
+      ),
+    reason: z.string().describe("일치/모순/허용 여부를 판단한 구체적인 이유"),
+    confidence: z
+      .number()
+      .min(0)
+      .max(1)
+      .describe(
+        "분석 결과에 대한 신뢰도 점수 (0.0 ~ 1.0). 이미지 단서가 명확할수록 높게, 불명확할수록 낮게 설정하세요.",
+      ),
   }),
 );
 
@@ -93,60 +114,152 @@ function normalizeBase64Input(input) {
   return input;
 }
 
-function base64ToBuffer(input) {
-  return Buffer.from(normalizeBase64Input(input), "base64");
-}
-
-async function analyzeLocationWithGemini(base64Image, hint = "") {
-  const prompt = new PromptTemplate({
-    template: `
-당신은 이미지 분석 전문가입니다.
-
-주어진 사진을 보고 해당 사진이 촬영된 **여행지(관광지/명소/핫플레이스)**를 추정하세요.
-
-힌트:
-{hint}
-
-반드시 지켜야 할 규칙:
-- 결과는 반드시 한국어로 작성합니다.
-- 반드시 "실제 존재하는 여행지 이름"을 반환합니다.
-- 행정구역(시/도 + 시/군/구)을 반드시 포함합니다.
-  예: "서울특별시 종로구 경복궁", "제주특별자치도 제주시 성산일출봉"
-- 너무 큰 행정구역(예: 서울, 부산)만 단독으로 반환하지 마세요.
-- 가장 가능성 높은 장소 1개만 선택합니다.
-- 설명 없이 결과만 반환합니다.
-- 반드시 JSON 형식만 반환합니다.
-- schema를 반드시 따릅니다.
-
+async function analyzeAndVerifyLocation(base64Image, userHint = "") {
+  const step1Template = `
+당신은 이미지 분석 전문가입니다. 주어진 사진만 보고 촬영된 여행지를 추정하세요.
+텍스트 힌트보다 이미지의 시각적 단서가 무조건 1순위 우선순위를 가진다. 
+반드시 설명 없이 주어진 JSON 스키마 형식으로만 반환하세요.
 {format_instructions}
-`,
-    inputVariables: ["hint"],
+`;
+
+  const step1Prompt = new PromptTemplate({
+    template: step1Template,
+    inputVariables: [],
     partialVariables: {
       format_instructions: locationParser.getFormatInstructions(),
     },
   });
 
-  const formattedPrompt = await prompt.format({
-    hint: hint || "(없음)",
-  });
+  // 1단계 프롬프트 포맷팅
+  const step1Input = await step1Prompt.format({});
 
-  const response = await gemini.invoke([
+  // 이미지를 Google GenAI 라이브러리가 요구하는 Base64 Data URL 형태로 가공
+  const formattedImage = `data:image/jpeg;base64,${normalizeBase64Input(base64Image)}`;
+
+  // 이미지 세션 실행
+  const step1Response = await gemini.invoke([
     {
       role: "user",
       content: [
-        { type: "text", text: formattedPrompt },
+        { type: "text", text: step1Input },
         {
           type: "image_url",
           image_url: {
-            url: `data:image/jpeg;base64,${normalizeBase64Input(base64Image)}`,
+            url: formattedImage,
           },
         },
       ],
     },
   ]);
 
-  const raw = readModelText(response.content);
-  return locationParser.parse(extractJson(raw));
+  // [수정] 1단계 안전 파싱 처리 (readModelText 및 extractJson 적용)
+  let imageAnalysisResult;
+  try {
+    const rawStep1 = readModelText(step1Response.content);
+    const jsonStep1 = extractJson(rawStep1);
+    imageAnalysisResult = await locationParser.parse(jsonStep1);
+  } catch (parseError) {
+    console.error("1단계 이미지 분석 파싱 실패, 기본값 대체:", parseError);
+    // 파싱이 터졌을 때의 안전 폴백 장치
+    imageAnalysisResult = {
+      sido: "기록되지 않음",
+      sigungu: "알 수 없음",
+      spot_name: "관광 명소",
+    };
+  }
+
+  const detectedLocation = `${imageAnalysisResult.sido} ${imageAnalysisResult.sigungu} ${imageAnalysisResult.spot_name}`;
+
+  // 유저가 준 힌트가 없다면 검증 패스하고 바로 결과 반환
+  if (!userHint || userHint.trim() === "") {
+    return {
+      success: true,
+      location: detectedLocation,
+      message: "힌트가 없어 이미지로만 분석했습니다.",
+    };
+  }
+
+  const step2Template = `
+당신은 데이터 검증 전문가입니다. 
+[사진 분석 결과]의 물리적 장소와 사용자가 입력한 [사용자 입력 힌트]를 비교하여, 두 정보가 '확정적으로 모순'되는지 검증하세요.
+
+[사진 분석 결과]: {detectedLocation}
+[사용자 입력 힌트]: {userHint}
+
+⚠️ [판정 및 검증 규칙 - 필수 준수]
+
+1. 명백한 모순 (is_matching: false 조건):
+   - 이미지 속 실제 위치와 사용자가 '확정적인 어조'로 주장하는 공간적 위치/지역이 완전히 다를 때만 false로 판정합니다.
+   - 예시: [사진 분석 결과]가 '63빌딩'인데 힌트가 '제주도에서 찍음'인 경우 (확정적 거짓/모순이므로 false)
+
+2. 모순이 아닌 허용 케이스 (is_matching: true 조건 - 매우 중요):
+   - 추측 및 의문문: 사용자가 "~인가? 아닌가?", "어디였지? 기억이 안 나네" 처럼 확신이 없거나 헷갈려하는 표현을 쓴 경우 모순이 아닙니다. 유저는 정답을 모르고 있으므로 힌트를 무시하고 'is_matching'을 true로 처리하세요.
+   - 포괄적/모호한 단서: "드라마 촬영지", "호수공원", "이쁜 카페" 처럼 전국 어디에나 해당할 수 있는 넓은 범위의 단서를 준 경우, 이미지 결과와 충돌하지 않으므로 모순이 아닙니다. 'is_matching'을 true로 처리하세요.
+   - 유도 신문 방지: 모호한 단서("드라마 촬영지") 때문에 [사진 분석 결과](동탄호수공원)를 엉뚱한 다른 유사 장소(일산호수공원)로 왜곡하거나 상상하여 바꾸지 마십시오. 시각적 단서 기반인 [사진 분석 결과]가 무조건 최우선 가중치를 가집니다.
+
+3. final_location 작성 규칙:
+   - 'is_matching'이 true이면서 유저가 헷갈려하는 경우(예: "부산인가? 다른 데인가?"): 유저 힌트를 무시하고 [사진 분석 결과] 명칭을 그대로 final_location에 작성하세요.
+   - 'is_matching'이 true이면서 유저 힌트가 정확한 단서인 경우: 두 정보를 조합하여 가장 정확한 풀네임을 완성하세요.
+   - 'is_matching'이 false인 경우(모순): 사용자의 힌트는 거짓 정보이므로 전달받은 [사진 분석 결과]의 명칭을 토대로 최종 위치를 강제 고정하세요.
+
+반드시 설명 없이 주어진 JSON 스키마 형식으로만 응답하세요.
+{format_instructions}
+`;
+
+  const step2Prompt = new PromptTemplate({
+    template: step2Template,
+    inputVariables: ["detectedLocation", "userHint"],
+    partialVariables: {
+      format_instructions: verificationParser.getFormatInstructions(),
+    },
+  });
+
+  const step2Input = await step2Prompt.format({
+    detectedLocation: detectedLocation,
+    userHint: userHint,
+  });
+
+  const step2Response = await groq.invoke([
+    { role: "user", content: step2Input },
+  ]);
+
+  // [수정] 2단계 안전 파싱 처리 (readModelText 및 extractJson 적용 및 try-catch 감싸기)
+  let verificationResult;
+  try {
+    const rawStep2 = readModelText(step2Response.content);
+    const jsonStep2 = extractJson(rawStep2);
+    verificationResult = await verificationParser.parse(jsonStep2);
+  } catch (parseError) {
+    console.error("2단계 검증 결과 파싱 실패, 기본 패스 처리:", parseError);
+    // 파싱 실패 시, 무작정 에러를 내지 않고 안전하게 통과시키는 처리
+    verificationResult = {
+      is_matching: true,
+      final_location: detectedLocation,
+      reason:
+        "LLM 출력 파싱에 실패하여 이미지 기반 정보로 안전하게 대체합니다.",
+    };
+  }
+  console.log("verificationResult:", verificationResult);
+
+  // ==========================================
+  // [3단계] 검증 결과에 따른 백엔드 비즈니스 로직 처리
+  // ==========================================
+  if (!verificationResult.is_matching) {
+    return {
+      success: false,
+      errorType: "CONTRADICTORY_INPUT",
+      message: "업로드한 사진과 입력하신 힌트 장소가 일치하지 않습니다.",
+      reason: verificationResult.reason,
+      fallbackLocation: verificationResult.final_location,
+    };
+  }
+
+  return {
+    success: true,
+    location: verificationResult.final_location,
+    reason: verificationResult.reason,
+    confidence: verificationResult.confidence ?? 0.7,
+  };
 }
 
 async function analyzeMoodWithGemini(base64Image, extra = "") {
@@ -240,16 +353,19 @@ async function findLocation(req, res, next) {
 
     for (let i = 0; i < 3; i += 1) {
       try {
-        parsed = await analyzeLocationWithGemini(
+        parsed = await analyzeAndVerifyLocation(
           image,
           `${hint || ""}\n${historyHint}`,
         );
       } catch (error) {
-        console.error("analyzeLocationWithGemini failed:", error);
+        console.error("analyzeAndVerifyLocation failed:", error);
         parsed = null;
       }
 
-      if (parsed && parsed.confidence >= 90) {
+      if (
+        parsed &&
+        (parsed.success || parsed.errorType === "CONTRADICTORY_INPUT")
+      ) {
         break;
       }
 
@@ -259,11 +375,29 @@ async function findLocation(req, res, next) {
 `;
     }
 
-    const safeLocation = parsed || {
-      region: hint ? `단서 기반 추정: ${hint}` : "알 수 없는 지역",
-      latitude: 0,
-      longitude: 0,
-      confidence: 0,
+    if (
+      parsed &&
+      !parsed.success &&
+      parsed.errorType === "CONTRADICTORY_INPUT"
+    ) {
+      return res.status(400).json({
+        success: false,
+        errorType: parsed.errorType,
+        message: parsed.message,
+        reason: parsed.reason,
+      });
+    }
+
+    if (!parsed || !parsed.success) {
+      return res.status(500).json({
+        success: false,
+        message: "이미지 분석 및 검증에 실패했습니다.",
+      });
+    }
+
+    const safeLocation = {
+      region: parsed.location,
+      confidence: parsed.confidence ?? 0.7, // ✅ || 0 에서 ?? 0.7 로 변경
     };
 
     const recommendation = await recommendTravelPlace(`
@@ -273,7 +407,7 @@ ${safeLocation.region}
 당신은 대한민국 최고의 국내 여행 가이드입니다.
 제시된 조건을 바탕으로, 카카오맵/네이버 지도에서 '실제 검색 및 위치 조회가 가능한' 한국의 구체적인 여행지 3곳을 추천해 주세요.
 
-이 지역과 어울리는 한국의 구체적인 여행지 5~6곳을 추천해 주세요.
+이 지역과 어울리는 한국의 구체적인 여행지 10곳을 추천해 주세요.
 
 ⚠️ [필수 준수 규칙 - 위반 시 에러]
 1. 존엄성 및 실존 주의:
@@ -289,28 +423,26 @@ ${safeLocation.region}
    - "reason": 왜 이 장소를 추천하는지 이유를 친절하게 설명
 
 4. 명소 명칭의 무단 축약 및 변형 금지 (매우 중요):
-   - 인터넷 검색 및 지도 앱에 등록된 '정식 풀네임(Official Full Name)'을 그대로 적으십시오.
-   - 접미사(호수, 저수지, 해수욕장, 평야, 생태공원 등)를 절대로 마음대로 생략하거나 축약하지 마십시오.
-   - 예시 오류 교정:
-     * (X) 반월호 -> (O) 반월호수
-     * (X) 백운호 -> (O) 백운호수
-     * (X) 광안리 -> (O) 광안리해수욕장
-     * (X) 일산공원 -> (O) 일산호수공원
-   - 지형이나 상호명의 끝 글자 하나가 달라지면 지도 API가 장소를 찾지 못하므로, 반드시 정확한 풀네임인지 검증 후 출력하세요.
+- 인터넷 검색 및 지도 앱에 등록된 '정식 풀네임(Official Full Name)'을 그대로 적으십시오.
+- 접미사(호수, 저수지, 해수욕장, 평야, 생태공원 등)를 절대로 마음대로 생략하거나 축약하지 마십시오.
+- 예시 오류 교정:
+  * (X) 반월호 -> (O) 반월호수
+  * (X) 백운호 -> (O) 백운호수
+  * (X) 광안리 -> (O) 광안리해수욕장
+  * (X) 일산공원 -> (O) 일산호수공원
+- 지형이나 상호명의 끝 글자 하나가 달라지면 지도 API가 장소를 찾지 못하므로, 반드시 정확한 풀네임인지 검증 후 출력하세요.
 
 5. 국가 및 행정 기관 건물 추천 배제 (매우 중요):
    - 순수한 관광 목적이 아닌 공공 행정 기관, 국가 건물, 지방 자치 단체 청사는 **절대로** 추천하지 마십시오.
    - 예시 오류 교정: (X) 서울시청, 부산시청, 제주도청, 종로구청, 울릉군청 등 모든 형태의 시청/도청/구청/군청/주민센터/정부청사 및 법원 등 공공 업무 시설은 제외합니다. 다만, 역사적 가치가 있어 관광지화된 장소(예: '구 서울역사', '덕수궁 석조전')는 허용됩니다.
 
-6. 사진 속 추정 위치 제외 (★ 추가된 규칙):
-   - 위에 제시된 '추정 위치(${safeLocation.region})'와 완전히 동일하거나, 해당 추정 위치 내부에 포함된 구체적인 장소는 추천 결과('spots')에 절대로 포함하지 마십시오.
-   - 예컨대 추정 위치가 '제주특별자치도 제주시 성산일출봉'이라면, 추천 리스트에는 성산일출봉을 제외한 다른 매력적인 연관 여행지들로만 구성해야 합니다.
 
-  출력 전 반드시 자가검증:
-  - [ ] 이 장소를 카카오맵에 검색하면 나오는가?
-  - [ ] 공식 명칭 전체를 사용했는가?
-  - [ ] 미사여구나 수식어가 name 필드에 없는가?
-  검증 실패 시 다른 장소로 교체할 것.
+출력 전 반드시 자가검증:
+- [ ] 이 장소를 카카오맵에 검색하면 나오는가?
+- [ ] 공식 명칭 전체를 사용했는가?
+- [ ] 미사여구나 수식어가 name 필드에 없는가?
+검증 실패 시 다른 장소로 교체할 것.
+
 반드시 아래 JSON 포맷 표준을 준수하여 JSON 데이터만 반환하세요. 다른 텍스트는 절대 포함하지 마십시오.
 
 {
@@ -335,7 +467,6 @@ ${safeLocation.region}
     });
 
     for (const spot of filteredSpots) {
-      // 기존 recommendation.spots 대신 필터링된 배열 사용
       if (validSpots.length >= 3) break;
 
       if (await verifyPlaceWithKakao(spot)) {
@@ -391,7 +522,7 @@ ${extra || "(없음)"}
 당신은 대한민국 최고의 국내 여행 가이드입니다.
 제시된 조건을 바탕으로, 카카오맵/네이버 지도에서 '실제 검색 및 위치 조회가 가능한' 한국의 구체적인 여행지 3곳을 추천해 주세요.
 
-이 분위기와 조건에 맞는 한국의 구체적인 여행지 5~6곳을 추천해 주세요.
+이 분위기와 조건에 맞는 한국의 구체적인 여행지 10곳을 추천해 주세요.
 
 ⚠️ [필수 준수 규칙 - 위반 시 에러]
 1. 존엄성 및 실존 주의:
@@ -441,6 +572,9 @@ ${extra || "(없음)"}
 `);
 
     const validSpots = [];
+    console.log("-----------------");
+    console.log(recommendation.spots);
+    console.log("-----------------");
 
     for (const spot of recommendation.spots) {
       if (validSpots.length >= 3) break; // 3개 채워지면 즉시 종료
@@ -451,7 +585,6 @@ ${extra || "(없음)"}
     }
 
     recommendation.spots = validSpots;
-    console.log(recommendation);
     return res.json({
       moodTags,
       recommendation,

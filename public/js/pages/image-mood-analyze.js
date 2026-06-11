@@ -196,6 +196,7 @@ function showError(el, resultEl, message) {
   resultEl.classList.remove("visible");
   resultEl.innerHTML = "";
 }
+
 function clearError(el) {
   el.textContent = "";
   el.classList.remove("visible");
@@ -219,7 +220,7 @@ function friendlyError(error) {
   return "요청을 처리하는 동안 문제가 발생했습니다. 다시 시도해 주세요.";
 }
 
-function updatePreview(mode, file, imageEl, placeholderEl, uploadBoxEl) {
+function updatePreview(file, imageEl, placeholderEl, uploadBoxEl) {
   if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
   state.previewUrl = URL.createObjectURL(file);
   imageEl.src = state.previewUrl;
@@ -242,14 +243,56 @@ function setImageFromFile(
   btnEl,
 ) {
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    const value = event.target?.result;
-    state.imageBase64 = typeof value === "string" ? value.split(",")[1] : "";
+
+  // 1. 미리보기는 기존처럼 변형 없는 ObjectURL로 즉시 띄워줍니다 (속도 최적화)
+  updatePreview(mode, file, imageEl, placeholderEl, uploadBoxEl);
+
+  // 2. AI 전송용 이미지 압축 처리
+  const img = new Image();
+  img.src = state.previewUrl; // 미리보기용으로 생성된 URL 재활용
+
+  img.onload = () => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    // AI 분석에 적절한 최대 해상도 설정 (1200px 정도면 충분히 정밀함)
+    const MAX_WIDTH = 1200;
+    const MAX_HEIGHT = 1200;
+    let width = img.width;
+    let height = img.height;
+
+    // 원본 비율 유지하면서 리사이징 계산
+    if (width > height) {
+      if (width > MAX_WIDTH) {
+        height *= MAX_WIDTH / width;
+        width = MAX_WIDTH;
+      }
+    } else {
+      if (height > MAX_HEIGHT) {
+        width *= MAX_HEIGHT / height;
+        height = MAX_HEIGHT;
+      }
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+
+    // 캔버스에 리사이징된 이미지 그리기
+    ctx.drawImage(img, 0, 0, width, height);
+
+    // image/jpeg 형식으로 70% 화질(0.7)로 압축하여 Base64 추출
+    const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+
+    // AI에게 보낼 state에는 압축된 Base64 데이터만 저장 (접두어 제거)
+    state.imageBase64 = compressedBase64.split(",")[1];
+
+    // 버튼 활성화
     btnEl.disabled = !state.imageBase64 || state.isLoading;
   };
-  reader.readAsDataURL(file);
-  updatePreview(mode, file, imageEl, placeholderEl, uploadBoxEl);
+
+  img.onerror = () => {
+    console.error("이미지를 로드하는 중 오류가 발생했습니다.");
+  };
 }
 
 async function renderSpots(spots) {

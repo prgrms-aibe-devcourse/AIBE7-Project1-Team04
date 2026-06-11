@@ -101,9 +101,7 @@ async function renderKakaoCardMap(container, place) {
   return map;
 }
 
-// 통합 지도 마운트 함수 (추정 위치 및 추천지 모두 키워드 검색 기반으로 작동)
 async function renderKakaoMaps(spots, estimatedLocationName = null) {
-  // 1. [변경 완료] 추정 위치도 이름을 가지고 키워드 검색 API로 실제 위치값 도출
   if (estimatedLocationName) {
     const estContainer = document.getElementById("estimated-map");
     if (estContainer) {
@@ -112,12 +110,11 @@ async function renderKakaoMaps(spots, estimatedLocationName = null) {
         if (results && results.length > 0) {
           const targetPlace = results[0];
           await renderKakaoCardMap(estContainer, {
-            name: targetPlace.name, // 검색 결과로 나온 깔끔한 상호명 매핑
+            name: targetPlace.name,
             latitude: targetPlace.latitude,
             longitude: targetPlace.longitude,
           });
         } else {
-          // 검색 실패 시 폴백 (서버 데이터셋 활용)
           const fallbackLat = Number(estContainer.dataset.fallbackLat);
           const fallbackLng = Number(estContainer.dataset.fallbackLng);
           if (!isNaN(fallbackLat) && !isNaN(fallbackLng)) {
@@ -134,7 +131,6 @@ async function renderKakaoMaps(spots, estimatedLocationName = null) {
     }
   }
 
-  // 2. 연관 추천 여행지 3곳 지도 렌더링
   for (const [index, spot] of spots.entries()) {
     const container = document.getElementById(`map-${index}`);
     if (!container) continue;
@@ -181,19 +177,22 @@ function clearStatus(el) {
   el.textContent = "";
 }
 
+// textContent 대신 innerHTML을 사용하여 개행(<br>)이 먹히도록 수정
 function showError(el, resultEl, message) {
-  el.textContent = message;
+  el.innerHTML = message.replace(/\n/g, "<br>");
   el.classList.add("visible");
   resultEl.classList.remove("visible");
   resultEl.innerHTML = "";
 }
+
 function clearError(el) {
   el.textContent = "";
   el.classList.remove("visible");
 }
 
 function friendlyError(error) {
-  const msg = error?.message || "";
+  const msg = error?.message || String(error);
+
   if (
     msg.includes("Failed to fetch") ||
     msg.includes("NetworkError") ||
@@ -207,6 +206,12 @@ function friendlyError(error) {
   if (msg === "500" || msg.includes("Internal Server Error")) {
     return "서버에서 이미지를 분석하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
   }
+
+  // 백엔드가 던진 모순 메시지 구조("업로드한 사진과...")를 걸러내어 그대로 반환
+  if (msg && msg !== "400" && isNaN(msg)) {
+    return msg;
+  }
+
   return "요청을 처리하는 동안 문제가 발생했습니다. 다시 시도해 주세요.";
 }
 
@@ -335,14 +340,45 @@ function setImageFromFile(
   btnEl,
 ) {
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    const value = event.target?.result;
-    state.imageBase64 = typeof value === "string" ? value.split(",")[1] : "";
+
+  updatePreview(mode, file, imageEl, placeholderEl, uploadBoxEl);
+
+  const img = new Image();
+  img.src = state.previewUrl;
+
+  img.onload = () => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const MAX_WIDTH = 1200;
+    const MAX_HEIGHT = 1200;
+    let width = img.width;
+    let height = img.height;
+
+    if (width > height) {
+      if (width > MAX_WIDTH) {
+        height *= MAX_WIDTH / width;
+        width = MAX_WIDTH;
+      }
+    } else {
+      if (height > MAX_HEIGHT) {
+        width *= MAX_HEIGHT / height;
+        height = MAX_HEIGHT;
+      }
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+    state.imageBase64 = compressedBase64.split(",")[1];
     btnEl.disabled = !state.imageBase64 || state.isLoading;
   };
-  reader.readAsDataURL(file);
-  updatePreview(mode, file, imageEl, placeholderEl, uploadBoxEl);
+
+  img.onerror = () => {
+    console.error("이미지를 로드하는 중 오류가 발생했습니다.");
+  };
 }
 
 async function analyzeLocation() {
@@ -382,7 +418,18 @@ async function analyzeLocation() {
       }),
     });
 
-    if (!response.ok) throw new Error(String(response.status));
+    if (!response.ok) {
+      if (response.status === 400) {
+        const errorData = await response.json();
+
+        console.log("400 응답 데이터");
+        console.log(errorData);
+
+        throw new Error(`${errorData.message}\n💡 사유: ${errorData.reason}`);
+      }
+
+      throw new Error(String(response.status));
+    }
 
     const data = await response.json();
     configRecommendationSpots(data.recommendation?.spots || []);
@@ -393,8 +440,7 @@ async function analyzeLocation() {
     await new Promise(requestAnimationFrame);
     await new Promise(requestAnimationFrame);
 
-    // 추가 안정화
-    await new Promise((r) => setTimeout(r, 3000)); // [수정] 추정 위치 이름을 두 번째 인자로 문자열 전달
+    await new Promise((r) => setTimeout(r, 3000));
     const estName = data.location?.region || null;
     resultEl.classList.add("visible");
     await renderKakaoMaps(data.recommendation?.spots || [], estName);
@@ -402,8 +448,14 @@ async function analyzeLocation() {
     elements.moveMoodBtn.classList.remove("d-none");
     setStatus(statusEl, "분석 완료");
   } catch (error) {
+    console.log("catch 진입");
+    console.log(error);
+    console.log("error.message =", error.message);
+
     if (requestId !== state.requestId) return;
-    showError(errorEl, resultEl, friendlyError(error));
+
+    showError(errorEl, resultEl, error.message);
+
     clearStatus(statusEl);
   } finally {
     clearInterval(timer);
