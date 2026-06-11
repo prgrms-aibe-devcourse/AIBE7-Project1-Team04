@@ -5,6 +5,8 @@ const { PromptTemplate } = require("@langchain/core/prompts");
 const { StructuredOutputParser } = require("@langchain/core/output_parsers");
 const { ChatGroq } = require("@langchain/groq");
 
+const { verifyPlaceWithKakao } = require("../ai/kakaoLocalClient");
+
 const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
 const gemini = new ChatGoogleGenerativeAI({
   apiKey,
@@ -22,6 +24,7 @@ const groq = new ChatGroq({
   apiKey: process.env.GROQ_API_KEY,
   model: "llama-3.3-70b-versatile",
   temperature: 0,
+  topP: 0.1,
 });
 
 dotenv.config();
@@ -270,7 +273,7 @@ ${safeLocation.region}
 당신은 대한민국 최고의 국내 여행 가이드입니다.
 제시된 조건을 바탕으로, 카카오맵/네이버 지도에서 '실제 검색 및 위치 조회가 가능한' 한국의 구체적인 여행지 3곳을 추천해 주세요.
 
-이 지역과 어울리는 한국 여행지 3곳을 추천해 주세요.
+이 지역과 어울리는 한국의 구체적인 여행지 5~6곳을 추천해 주세요.
 
 ⚠️ [필수 준수 규칙 - 위반 시 에러]
 1. 존엄성 및 실존 주의:
@@ -299,6 +302,10 @@ ${safeLocation.region}
    - 순수한 관광 목적이 아닌 공공 행정 기관, 국가 건물, 지방 자치 단체 청사는 **절대로** 추천하지 마십시오.
    - 예시 오류 교정: (X) 서울시청, 부산시청, 제주도청, 종로구청, 울릉군청 등 모든 형태의 시청/도청/구청/군청/주민센터/정부청사 및 법원 등 공공 업무 시설은 제외합니다. 다만, 역사적 가치가 있어 관광지화된 장소(예: '구 서울역사', '덕수궁 석조전')는 허용됩니다.
 
+6. 사진 속 추정 위치 제외 (★ 추가된 규칙):
+   - 위에 제시된 '추정 위치(${safeLocation.region})'와 완전히 동일하거나, 해당 추정 위치 내부에 포함된 구체적인 장소는 추천 결과('spots')에 절대로 포함하지 마십시오.
+   - 예컨대 추정 위치가 '제주특별자치도 제주시 성산일출봉'이라면, 추천 리스트에는 성산일출봉을 제외한 다른 매력적인 연관 여행지들로만 구성해야 합니다.
+
   출력 전 반드시 자가검증:
   - [ ] 이 장소를 카카오맵에 검색하면 나오는가?
   - [ ] 공식 명칭 전체를 사용했는가?
@@ -316,6 +323,27 @@ ${safeLocation.region}
   ]
 }
 `);
+
+    const validSpots = [];
+
+    // AI가 반환한 결과 중, 이름이 추정 위치 명칭을 포함하고 있다면 원천 배제
+    const filteredSpots = recommendation.spots.filter((spot) => {
+      return (
+        !safeLocation.region.includes(spot.name) &&
+        !spot.name.includes(safeLocation.region)
+      );
+    });
+
+    for (const spot of filteredSpots) {
+      // 기존 recommendation.spots 대신 필터링된 배열 사용
+      if (validSpots.length >= 3) break;
+
+      if (await verifyPlaceWithKakao(spot)) {
+        validSpots.push(spot);
+      }
+    }
+
+    recommendation.spots = validSpots;
 
     return res.json({
       source: "Gemini",
@@ -363,7 +391,7 @@ ${extra || "(없음)"}
 당신은 대한민국 최고의 국내 여행 가이드입니다.
 제시된 조건을 바탕으로, 카카오맵/네이버 지도에서 '실제 검색 및 위치 조회가 가능한' 한국의 구체적인 여행지 3곳을 추천해 주세요.
 
-이 분위기와 조건에 맞는 한국 여행지 3곳을 추천해 주세요.
+이 분위기와 조건에 맞는 한국의 구체적인 여행지 5~6곳을 추천해 주세요.
 
 ⚠️ [필수 준수 규칙 - 위반 시 에러]
 1. 존엄성 및 실존 주의:
@@ -411,6 +439,18 @@ ${extra || "(없음)"}
   ]
 }
 `);
+
+    const validSpots = [];
+
+    for (const spot of recommendation.spots) {
+      if (validSpots.length >= 3) break; // 3개 채워지면 즉시 종료
+
+      if (await verifyPlaceWithKakao(spot)) {
+        validSpots.push(spot);
+      }
+    }
+
+    recommendation.spots = validSpots;
     console.log(recommendation);
     return res.json({
       moodTags,
