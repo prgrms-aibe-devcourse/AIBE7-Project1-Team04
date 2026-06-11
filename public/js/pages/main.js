@@ -1,4 +1,6 @@
 import { saveItinerary, savePayload } from "./itinerary-state.js";
+import { renderHeader } from "../components/header.js";
+import { renderFooter } from "../components/footer.js";
 
 const session = JSON.parse(localStorage.getItem("session") || "null");
 const isLoggedIn = Boolean(session?.access_token);
@@ -6,41 +8,14 @@ const isLoggedIn = Boolean(session?.access_token);
 init();
 
 function init() {
-  setupHeader();
+  renderHeader({ active: "home" });
+  renderFooter();
   setupHeroButtons();
   setupAccordion();
 
   if (isLoggedIn) {
     injectTripsSection();
   }
-}
-
-// ── Header ──
-function setupHeader() {
-  if (!isLoggedIn) return;
-
-  document.getElementById("guestActions").classList.add("hidden");
-  document.getElementById("userActions").classList.remove("hidden");
-
-  const nickname = getNickname();
-  document.getElementById("userNickname").textContent = nickname;
-  document.getElementById("userAvatar").textContent = nickname
-    .charAt(0)
-    .toUpperCase();
-
-  document.getElementById("userTrigger")?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    document.getElementById("userDropdown").classList.toggle("open");
-  });
-
-  document.addEventListener("click", () => {
-    document.getElementById("userDropdown")?.classList.remove("open");
-  });
-
-  document.getElementById("logoutBtn")?.addEventListener("click", () => {
-    localStorage.removeItem("session");
-    window.location.reload();
-  });
 }
 
 // ── Hero buttons (로그인 상태에 따라 CTA만 교체) ──
@@ -55,7 +30,7 @@ function setupHeroButtons() {
   } else {
     btns.innerHTML = `
       <a href="/pages/login.html" class="btn-hero-outline">로그인하고 사진 검색</a>
-      <a href="/pages/image-analyze.html" class="btn-hero-fill">서비스 둘러보기</a>
+      <a href="/pages/itinerary-create.html" class="btn-hero-fill">서비스 둘러보기</a>
     `;
   }
 }
@@ -164,14 +139,6 @@ async function viewTrip(id) {
   savePayload(trip.payload || {});
   saveItinerary(trip.itinerary);
   window.location.href = "/pages/itinerary-result.html";
-}
-
-function getNickname() {
-  return (
-    session?.user?.user_metadata?.nickname ||
-    session?.user?.email?.split("@")[0] ||
-    "사용자"
-  );
 }
 
 function escapeHtml(v) {
