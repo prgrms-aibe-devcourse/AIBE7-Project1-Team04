@@ -1,8 +1,12 @@
-import { requestItinerary } from "../common/api.js";
+import {
+  requestItinerary,
+  requestItineraryWithProgress,
+} from "../common/api.js";
 import { loadPayload, saveItinerary } from "./itinerary-state.js";
 
 const loadingSummary = document.querySelector("#loadingSummary");
 const loadingMessage = document.querySelector("#loadingMessage");
+const loadingStepItems = document.querySelectorAll("#loadingSteps span");
 
 const payload = loadPayload();
 
@@ -16,15 +20,38 @@ if (!payload?.keyword) {
   generateItinerary(payload);
 }
 
+function setLoadingStage(stage) {
+  loadingStepItems.forEach((item) => {
+    item.classList.toggle("is-active", item.dataset.stage === stage);
+  });
+}
+
+function handleProgress(progress) {
+  if (progress.stage) {
+    setLoadingStage(progress.stage);
+  }
+
+  if (progress.message) {
+    loadingMessage.textContent = progress.message;
+  }
+}
 async function generateItinerary(payload) {
   const startedAt = Date.now();
 
   try {
-    const itinerary = await requestItinerary(payload);
+    const itinerary = await requestItineraryWithProgress(
+      payload,
+      handleProgress,
+    );
+
     saveItinerary(itinerary);
 
+    setLoadingStage("finalize");
+    loadingMessage.textContent =
+      "일정 생성이 완료되어 결과 페이지로 이동하고 있어요.";
+
     const elapsed = Date.now() - startedAt;
-    const wait = Math.max(0, 900 - elapsed);
+    const wait = Math.max(0, 500 - elapsed);
 
     window.setTimeout(() => {
       window.location.href = "./itinerary-result.html";

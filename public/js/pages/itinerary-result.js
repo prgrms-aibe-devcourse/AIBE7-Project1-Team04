@@ -67,6 +67,8 @@ function bindCommonEvents() {
       event.preventDefault();
       showToast("먼저 여행 조건을 입력해 주세요.");
     }
+
+    sessionStorage.setItem("itineraryEntryMode", "clearNotesOnly");
   });
 
   shareButton?.addEventListener("click", handleShare);
@@ -74,55 +76,57 @@ function bindCommonEvents() {
 }
 
 async function handleSaveToAccount() {
-  const session = JSON.parse(localStorage.getItem('session') || 'null');
+  const session = JSON.parse(localStorage.getItem("session") || "null");
   if (!session?.access_token) {
-    showToast('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
-    setTimeout(() => { window.location.href = '/pages/login.html'; }, 1500);
+    showToast("로그인이 필요합니다. 로그인 페이지로 이동합니다.");
+    setTimeout(() => {
+      window.location.href = "/pages/login.html";
+    }, 1500);
     return;
   }
 
   if (!itinerary) {
-    showToast('저장할 일정이 없습니다.');
+    showToast("저장할 일정이 없습니다.");
     return;
   }
 
   if (saveButton) {
     saveButton.disabled = true;
-    saveButton.textContent = '저장 중...';
+    saveButton.textContent = "저장 중...";
   }
 
   try {
-    const response = await fetch('/api/trips', {
-      method: 'POST',
+    const response = await fetch("/api/trips", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
-        title: itinerary.headline || `${payload?.keyword || '여행'} 일정`,
+        title: itinerary.headline || `${payload?.keyword || "여행"} 일정`,
         payload: payload || {},
         itinerary,
       }),
     });
 
     if (response.ok) {
-      showToast('일정이 저장되었습니다! 내 여행 목록에서 확인하세요.');
+      showToast("일정이 저장되었습니다! 내 여행 목록에서 확인하세요.");
       if (saveButton) {
-        saveButton.textContent = '저장됨 ✓';
+        saveButton.textContent = "저장됨 ✓";
       }
     } else {
       const data = await response.json().catch(() => ({}));
-      showToast(data.message || '저장에 실패했습니다.');
+      showToast(data.message || "저장에 실패했습니다.");
       if (saveButton) {
         saveButton.disabled = false;
-        saveButton.textContent = '내 계정에 저장';
+        saveButton.textContent = "내 계정에 저장";
       }
     }
   } catch (_err) {
-    showToast('저장 중 오류가 발생했습니다.');
+    showToast("저장 중 오류가 발생했습니다.");
     if (saveButton) {
       saveButton.disabled = false;
-      saveButton.textContent = '내 계정에 저장';
+      saveButton.textContent = "내 계정에 저장";
     }
   }
 }
@@ -152,15 +156,11 @@ function renderItinerary({ container, itinerary, onRegenerate }) {
   container.innerHTML = "";
 
   const screen = document.createElement("article");
-  screen.className = "result-screen";
+  screen.className = "result-screen result-screen--split";
 
   screen.append(
     createResultHero(itinerary),
-    createKakaoMapSection(itinerary),
-    createDayTabs(itinerary),
-    createTimeline(itinerary),
-    createTipsBox(itinerary),
-    createFeedbackBox(itinerary, onRegenerate),
+    createResultSplitLayout(itinerary),
   );
 
   container.append(screen);
@@ -184,15 +184,14 @@ function createResultHero(itinerary) {
     itinerary.headline ||
     `${itinerary.destinationTitle || "여행지"}, 추천일정입니다.`;
 
-  const highlighted = highlightLastWord(headline);
+  const highlighted = formatResultHeadline(headline);
 
   hero.innerHTML = `
-    <div class="result-avatar" aria-hidden="true"></div>
-    <h2>${highlighted}</h2>
-    <p>${escapeHtml(
-      itinerary.subTitle || "AI가 알려준 맞춤일정으로 여행을 떠나보세요.",
-    )}</p>
-  `;
+  <h2>${highlighted}</h2>
+  <p>${escapeHtml(
+    itinerary.subTitle || "AI가 알려준 맞춤일정으로 여행을 떠나보세요.",
+  )}</p>
+`;
 
   if (itinerary.notice) {
     const notice = document.createElement("div");
@@ -208,6 +207,64 @@ function createResultHero(itinerary) {
   }
 
   return hero;
+}
+
+function createResultSplitLayout(itinerary) {
+  const layout = document.createElement("div");
+  layout.className = "result-split-layout";
+
+  const leftPanel = document.createElement("aside");
+  leftPanel.className = "result-left-panel";
+
+  leftPanel.append(
+    createPanelLabel("Map"),
+    createKakaoMapSection(itinerary),
+    createDayTabs(itinerary),
+    createDaySummary(itinerary),
+    createTipsBox(itinerary),
+  );
+
+  const timelinePanel = document.createElement("section");
+  timelinePanel.className = "result-timeline-panel";
+  timelinePanel.setAttribute("aria-label", "Day별 상세 여행 일정");
+
+  timelinePanel.append(createTimeline(itinerary));
+
+  layout.append(leftPanel, timelinePanel);
+
+  return layout;
+}
+
+function createPanelLabel(text) {
+  const label = document.createElement("p");
+  label.className = "result-panel-label";
+  label.textContent = text;
+  return label;
+}
+
+function createDaySummary(itinerary) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "day-summary";
+
+  const days = Array.isArray(itinerary.days) ? itinerary.days : [];
+
+  days.forEach((day, index) => {
+    const dayNumber = day.day || index + 1;
+
+    const panel = document.createElement("section");
+    panel.className = "day-summary-panel";
+    panel.dataset.daySummary = String(dayNumber);
+    panel.hidden = index !== 0;
+
+    panel.innerHTML = `
+      <h3>${escapeHtml(day.title || `Day ${dayNumber}`)}</h3>
+      <p>${escapeHtml(day.theme || "")}</p>
+    `;
+
+    wrapper.append(panel);
+  });
+
+  return wrapper;
 }
 
 function createMapStrip(itinerary) {
@@ -738,10 +795,11 @@ function createFeedbackBox(itinerary, onRegenerate) {
 
   return box;
 }
-
 function bindDayTabs(screen, itinerary) {
   const tabs = screen.querySelectorAll(".day-tab");
   const panels = screen.querySelectorAll(".day-panel");
+  const summaryPanels = screen.querySelectorAll(".day-summary-panel");
+  const timelineScroller = screen.querySelector(".result-timeline-panel");
 
   tabs.forEach((tab) => {
     tab.addEventListener("click", () => {
@@ -756,6 +814,17 @@ function bindDayTabs(screen, itinerary) {
       panels.forEach((panel) => {
         panel.hidden = Number(panel.dataset.dayPanel) !== selectedDay;
       });
+
+      summaryPanels.forEach((panel) => {
+        panel.hidden = Number(panel.dataset.daySummary) !== selectedDay;
+      });
+
+      if (timelineScroller) {
+        timelineScroller.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+      }
 
       updateKakaoMapByDay(selectedDay);
     });
@@ -901,24 +970,57 @@ function sanitizeFileName(fileName) {
     .trim();
 }
 
-function highlightLastWord(text) {
-  const safe = escapeHtml(text);
-  const parts = safe.split(" ");
+function formatResultHeadline(text) {
+  const headline = String(text || "").trim();
 
-  if (parts.length < 2) {
-    return `<strong>${safe}</strong>`;
+  const matched = headline.match(
+    /^(.+?)(을|를)\s+중심으로\s+한\s+(\d+박\s*\d+일)(.*)$/,
+  );
+
+  if (matched) {
+    const [, placeName, josa, duration, rest] = matched;
+
+    return `
+      <strong>${escapeHtml(placeName)}</strong>${escapeHtml(josa)} 중심으로 한
+      <br />
+      <strong>${escapeHtml(duration)}</strong>${escapeHtml(rest)}
+    `;
   }
 
-  const last = parts.pop();
-  return `${parts.join(" ")}<br /><strong>${last}</strong>`;
+  return escapeHtml(headline);
 }
 
 function getIconByCategory(category = "") {
-  if (category.includes("음식")) return "🍽️";
-  if (category.includes("카페")) return "☕";
-  if (category.includes("숙소")) return "🏨";
-  if (category.includes("이동")) return "✈️";
-  if (category.includes("체험")) return "🎟️";
+  const value = String(category || "");
+
+  if (
+    value.includes("음식") ||
+    value.includes("식사") ||
+    value.includes("식당")
+  ) {
+    return "🍽️";
+  }
+
+  if (value.includes("카페")) {
+    return "☕";
+  }
+
+  if (
+    value.includes("숙소") ||
+    value.includes("숙박") ||
+    value.includes("호텔")
+  ) {
+    return "🏨";
+  }
+
+  if (value.includes("이동")) {
+    return "✈️";
+  }
+
+  if (value.includes("체험")) {
+    return "🎟️";
+  }
+
   return "🗺️";
 }
 

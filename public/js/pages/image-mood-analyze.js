@@ -408,6 +408,7 @@ document.body.addEventListener("click", (event) => {
   };
 
   sessionStorage.setItem("selectedSpot", JSON.stringify(spot));
+  sessionStorage.setItem("itineraryEntryMode", "image");
   window.location.href = "/pages/itinerary-create.html";
 });
 

@@ -1470,6 +1470,224 @@ main {
   padding: 0 22px;
   text-decoration: none;
 }
+/* ==============================
+   Result page split layout override
+   ============================== */
+
+.itinerary-result-page {
+  width: min(1280px, calc(100% - 32px));
+  margin: 0 auto 80px;
+}
+
+.result--split {
+  margin-top: 20px;
+}
+
+.result-page-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 22px 0 14px;
+}
+
+.result-page-actions .result-toolbar__button {
+  width: auto;
+  min-width: 150px;
+  text-decoration: none;
+}
+
+.result-screen--split {
+  overflow: visible !important;
+  padding-bottom: 32px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.result-screen--split .result-hero {
+  padding: 42px 24px 44px;
+  text-align: center;
+}
+
+.result-split-layout {
+  display: grid !important;
+  grid-template-columns: minmax(380px, 0.9fr) minmax(0, 1.25fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.result-left-panel {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  position: static;
+  top: 92px;
+  align-self: start;
+}
+
+.result-panel-label {
+  margin: 0 0 -10px;
+  color: #a4adba;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.result-left-panel .kakao-map-section {
+  margin: 0 !important;
+  overflow: hidden;
+  border: 1px solid #e5eaf3;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.result-left-panel .kakao-map-header {
+  display: none;
+}
+
+.result-left-panel .itinerary-kakao-map {
+  width: 100%;
+  height: 300px;
+  border-radius: 20px;
+}
+
+.result-left-panel .day-tabs {
+  width: 100% !important;
+  margin: 16px 0 0 !important;
+  padding-bottom: 4px;
+}
+
+.result-left-panel .day-tab {
+  min-width: 86px;
+  height: 42px;
+  border-radius: 10px;
+}
+
+.day-summary-panel[hidden] {
+  display: none;
+}
+
+.day-summary-panel {
+  padding: 4px 0 6px;
+}
+
+.day-summary-panel h3 {
+  margin: 0;
+  color: #20242a;
+  font-size: 26px;
+  line-height: 1.3;
+  letter-spacing: -0.04em;
+}
+
+.day-summary-panel p {
+  margin: 8px 0 0;
+  color: #7a8496;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.result-left-panel .tips-box {
+  width: 100% !important;
+  margin: 10px 0 0 !important;
+  padding: 22px;
+  border-radius: 18px;
+}
+
+/* 오른쪽 타임라인 스크롤 영역 */
+.result-timeline-panel {
+  min-width: 0;
+  max-height: calc(100vh - 132px);
+  overflow-y: auto;
+  padding: 4px 12px 8px 0;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.result-timeline-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.result-timeline-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.result-timeline-panel::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+.result-timeline-panel .timeline {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+.result-timeline-panel .day-title {
+  display: none;
+}
+
+.result-timeline-panel .timeline-list {
+  gap: 22px;
+  padding-left: 34px;
+  padding-right: 4px;
+}
+
+.result-timeline-panel .timeline-list::before {
+  left: 10px;
+}
+
+.result-timeline-panel .timeline-dot {
+  left: -34px;
+  top: 0;
+}
+
+.result-timeline-panel .place-card {
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 16px;
+  padding: 20px;
+  border-radius: 20px;
+}
+
+.result-timeline-panel .card-thumb {
+  width: 56px;
+  height: 56px;
+}
+
+.result-timeline-panel .place-card h4 {
+  font-size: 20px;
+}
+
+/* 모바일에서만 세로 배치 */
+@media (max-width: 760px) {
+  .itinerary-result-page {
+    width: min(100% - 24px, 1280px);
+  }
+
+  .result-page-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .result-page-actions .result-toolbar__button {
+    width: 100%;
+  }
+
+  .result-split-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .result-left-panel {
+    position: static;
+  }
+
+  .result-timeline-panel {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+}
 
 @media (max-width: 640px) {
   .page-progress {
