@@ -30,7 +30,7 @@ function setupHeroButtons() {
   } else {
     btns.innerHTML = `
       <a href="/pages/login.html" class="btn-hero-outline">로그인하고 사진 검색</a>
-      <a href="/pages/itinerary-create.html" class="btn-hero-fill">서비스 둘러보기</a>
+      <a href="/pages/signup.html" class="btn-hero-fill">회원가입</a>
     `;
   }
 }

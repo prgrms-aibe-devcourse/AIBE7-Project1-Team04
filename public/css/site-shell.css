@@ -104,7 +104,7 @@
 }
 .btn-nav-outline:hover { background: rgba(17,24,39,0.05); }
 
-.btn-nav-fill {
+.main-header .btn-nav-fill {
   padding: 8px 18px;
   border: none;
   border-radius: var(--radius-sm);
@@ -114,7 +114,7 @@
   font-weight: 600;
   transition: background 0.15s;
 }
-.btn-nav-fill:hover { background: #374151; }
+.main-header .btn-nav-fill:hover { background: #374151; color: #fff; }
 
 .user-menu { position: relative; }
 
