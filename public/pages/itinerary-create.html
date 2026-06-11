@@ -15,22 +15,19 @@
             <h2>여행 조건 입력</h2>
           </div>
         </div>
-
-        <!-- 이미지 분석에서 전달받은 키워드가 적용되는 부분 -->
-        <!-- 현재는 input으로 받지만, 나중에는 전달받은 결과를 출력하기만 하는 파트로 변경 -->
-        <div class="field field--full">
-          <label for="keyword">키워드</label>
-          <input
-            id="keyword"
-            name="keyword"
-            type="text"
-            placeholder="예시: 제주도, 노을지는 해변, 포켓몬스터"
-            required
-          />
-        </div>
-
-        <!-- 목적지, 출발지 입력 -->
+        <!-- 키워드, 목적지 -->
         <div class="field-group">
+          <div class="field">
+            <label for="keyword">키워드</label>
+            <input
+              id="keyword"
+              name="keyword"
+              type="text"
+              placeholder="예시: 제주도, 노을지는 해변, 포켓몬스터"
+              required
+            />
+          </div>
+
           <div class="field">
             <label for="destination">목적지</label>
             <input
@@ -40,6 +37,10 @@
               placeholder="비워두면 AI가 추천"
             />
           </div>
+        </div>
+
+        <!-- 출발지, 여행 기간 -->
+        <div class="field-group">
           <div class="field">
             <label for="departure">출발지</label>
             <input
@@ -49,12 +50,7 @@
               placeholder="예시: 서울, 대전"
             />
           </div>
-        </div>
 
-        <!-- 여행 기간, 인원 입력 -->
-        <!-- 여행 기간은 X박 X일의 형태로 입력 받는 것이 나을 수도 있음 -->
-        <!-- 추후 형태 변화에 따라 js 코드도 같이 수정 필요 -->
-        <div class="field-group">
           <div class="field">
             <label for="days">여행 기간</label>
             <select id="days" name="days">
@@ -70,6 +66,10 @@
               <option value="10">9박 10일</option>
             </select>
           </div>
+        </div>
+
+        <!-- 인원, 예산 -->
+        <div class="field-group">
           <div class="field">
             <label for="people">인원</label>
             <input
@@ -81,28 +81,44 @@
               value="2"
             />
           </div>
+
+          <div class="field field--budget">
+            <label for="budget">예산</label>
+
+            <div class="budget-control">
+              <input
+                id="budget"
+                name="budgetAmount"
+                type="text"
+                placeholder="예: 80만원"
+              />
+
+              <div
+                class="budget-type-group"
+                role="radiogroup"
+                aria-label="예산 기준"
+              >
+                <label class="budget-type-option">
+                  <input
+                    type="radio"
+                    name="budgetType"
+                    value="perPerson"
+                    checked
+                  />
+                  <span>1인당</span>
+                </label>
+
+                <label class="budget-type-option">
+                  <input type="radio" name="budgetType" value="total" />
+                  <span>전체</span>
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- 예산, AI Provider 입력 -->
-        <div class="field-group">
-          <div class="field">
-            <label for="budget">예산</label>
-            <input
-              id="budget"
-              name="budget"
-              type="text"
-              placeholder="예: 1인 80만원, 전체 200만원"
-            />
-          </div>
-          <div class="field">
-            <label for="provider">AI Provider</label>
-            <select id="provider" name="provider">
-              <option value="gemini">Gemini</option>
-              <option value="groq">Groq</option>
-              <option value="nim">NVIDIA NIM</option>
-            </select>
-          </div>
-        </div>
+        <!-- AI Provider는 사용자에게 숨기고 내부적으로 Gemini 고정 -->
+        <input type="hidden" id="provider" name="provider" value="gemini" />
 
         <!-- 추가 조건 입력 -->
         <div class="field field--full">
