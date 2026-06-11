@@ -1,8 +1,8 @@
 const NAV_ITEMS = [
   { key: "home", href: "/", label: "홈" },
-  { key: "image-analyze", href: "/pages/image-analyze.html", label: "이미지 검색" },
+  { key: "image-location-analyze", href: "/pages/image-location-analyze.html", label: "위치 기반 추천" },
+  { key: "image-mood-analyze", href: "/pages/image-mood-analyze.html", label: "분위기 기반 추천" },
   { key: "itinerary-create", href: "/pages/itinerary-create.html", label: "여행 계획" },
-  { key: "community", href: "#", label: "커뮤니티" },
   { key: "my-trips", href: "/pages/my-trips.html", label: "마이페이지" },
 ];
 

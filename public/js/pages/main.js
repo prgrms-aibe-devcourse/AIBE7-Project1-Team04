@@ -95,7 +95,7 @@ async function loadRecentTrips() {
       grid.innerHTML = `
         <div class="trips-empty-main">
           아직 저장된 여행 일정이 없어요.<br>
-          <a href="/pages/image-analyze.html" style="color:#2563eb;font-weight:600;margin-top:8px;display:inline-block;">여행지 탐색하기 →</a>
+          <a href="/pages/image-location-analyze.html" style="color:#2563eb;font-weight:600;margin-top:8px;display:inline-block;">여행지 탐색하기 →</a>
         </div>
       `;
       return;
