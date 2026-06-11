@@ -60,6 +60,12 @@
 }
 
 .header-logo svg { width: 32px; height: 32px; }
+.header-logo-img {
+  height: 40px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
 
 .header-nav {
   display: flex;
@@ -200,13 +206,22 @@
 }
 
 .footer-brand-logo {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   color: #fff;
   font-weight: 800;
   font-size: 1rem;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
+  text-decoration: none;
+}
+
+.footer-brand-logo-img {
+  height: 48px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+  background: transparent;
 }
 
 .footer-brand-desc {

@@ -54,19 +54,8 @@ function buildMarkup(active) {
   return `
     <header class="main-header">
       <div class="main-header-inner">
-        <a href="/" class="header-logo">
-          <svg viewBox="0 0 36 36" fill="none">
-            <circle cx="10" cy="10" r="4.5" fill="#2563eb"/>
-            <circle cx="26" cy="10" r="4.5" fill="#2563eb"/>
-            <circle cx="10" cy="26" r="4.5" fill="#2563eb"/>
-            <circle cx="26" cy="26" r="4.5" fill="#2563eb"/>
-            <line x1="10" y1="10" x2="26" y2="10" stroke="#2563eb" stroke-width="1.5"/>
-            <line x1="10" y1="10" x2="10" y2="26" stroke="#2563eb" stroke-width="1.5"/>
-            <line x1="26" y1="10" x2="26" y2="26" stroke="#2563eb" stroke-width="1.5"/>
-            <line x1="10" y1="26" x2="26" y2="26" stroke="#2563eb" stroke-width="1.5"/>
-            <line x1="10" y1="10" x2="26" y2="26" stroke="#2563eb" stroke-width="1" stroke-dasharray="2 2"/>
-            <line x1="26" y1="10" x2="10" y2="26" stroke="#2563eb" stroke-width="1" stroke-dasharray="2 2"/>
-          </svg>
+        <a href="/" class="header-logo" aria-label="PicTrip 홈">
+          <img src="/assets/images/PicTrip-Logo.png" alt="PicTrip" class="header-logo-img" />
         </a>
 
         <ul class="header-nav">${navHtml}</ul>
