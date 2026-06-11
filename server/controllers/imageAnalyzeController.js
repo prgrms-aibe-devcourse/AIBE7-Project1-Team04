@@ -27,12 +27,32 @@ const groq = new ChatGroq({
   temperature: 0,
 });
 
-// 1단계: 순수 이미지 분석용 파서
+async function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms),
+    ),
+  ]);
+}
+
 const locationParser = StructuredOutputParser.fromZodSchema(
   z.object({
+    is_travel_image: z
+      .boolean()
+      .describe(
+        "이미지가 실제 야외 풍경, 건물, 자연 등 여행지나 장소와 관련된 사진이면 true, 웹사이트 스크린샷, 단순 텍스트, 무관한 실내 사물 근접샷이면 false",
+      ),
     sido: z.string().describe("시/도 (예: 서울특별시, 제주특별자치도)"),
     sigungu: z.string().describe("시/군/구 (예: 종로구, 제주시)"),
     spot_name: z.string().describe("상세 명소 이름 (예: 경복궁, 성산일출봉)"),
+    confidence: z
+      .number()
+      .min(0)
+      .max(1)
+      .describe(
+        "이미지 단서가 얼마나 명확하고 확실한지 기반으로 한 신뢰도 점수 (0.0 ~ 1.0). 랜드마크가 확실하면 높게, 모호하면 낮게 설정하세요.",
+      ),
   }),
 );
 
@@ -68,17 +88,15 @@ const moodParser = StructuredOutputParser.fromZodSchema(
   }),
 );
 
-const recommendationParser = StructuredOutputParser.fromZodSchema(
-  z.object({
-    spots: z.array(
-      z.object({
-        name: z.string(),
-        region: z.string(),
-        reason: z.string(),
-      }),
-    ),
-  }),
-);
+const recommendationSchema = z.object({
+  spots: z.array(
+    z.object({
+      name: z.string().describe("지도 앱에서 검색할 명소 고유 명칭"),
+      region: z.string().describe("시/도 + 시/군/구 행정구역"),
+      reason: z.string().describe("추천 사유"),
+    }),
+  ),
+});
 
 function readModelText(content) {
   if (typeof content === "string") return content;
@@ -117,7 +135,10 @@ function normalizeBase64Input(input) {
 async function analyzeAndVerifyLocation(base64Image, userHint = "") {
   const step1Template = `
 당신은 이미지 분석 전문가입니다. 주어진 사진만 보고 촬영된 여행지를 추정하세요.
-텍스트 힌트보다 이미지의 시각적 단서가 무조건 1순위 우선순위를 가진다. 
+텍스트 힌트보다 이미지의 시각적 단서가 무조건 1순위 우선순위를 가진다.
+
+⚠️ [매우 중요] 만약 이미지가 여행지나 풍경 사진이 아니고, 인터넷 웹사이트 스크린샷, 컴퓨터 UI, 글자만 있는 문서, 혹은 장소를 알 수 없는 단순 사물(예: 키보드, 볼펜 등)인 경우 'is_travel_image'를 반드시 false로 설정하세요.
+
 반드시 설명 없이 주어진 JSON 스키마 형식으로만 반환하세요.
 {format_instructions}
 `;
@@ -130,51 +151,60 @@ async function analyzeAndVerifyLocation(base64Image, userHint = "") {
     },
   });
 
-  // 1단계 프롬프트 포맷팅
   const step1Input = await step1Prompt.format({});
 
-  // 이미지를 Google GenAI 라이브러리가 요구하는 Base64 Data URL 형태로 가공
   const formattedImage = `data:image/jpeg;base64,${normalizeBase64Input(base64Image)}`;
 
-  // 이미지 세션 실행
-  const step1Response = await gemini.invoke([
-    {
-      role: "user",
-      content: [
-        { type: "text", text: step1Input },
-        {
-          type: "image_url",
-          image_url: {
-            url: formattedImage,
+  console.time("gemini-image");
+  const step1Response = await withTimeout(
+    gemini.invoke([
+      {
+        role: "user",
+        content: [
+          { type: "text", text: step1Input },
+          {
+            type: "image_url",
+            image_url: {
+              url: formattedImage,
+            },
           },
-        },
-      ],
-    },
-  ]);
+        ],
+      },
+    ]),
+    20000,
+  );
+  console.timeEnd("gemini-image");
 
-  // [수정] 1단계 안전 파싱 처리 (readModelText 및 extractJson 적용)
   let imageAnalysisResult;
   try {
     const rawStep1 = readModelText(step1Response.content);
     const jsonStep1 = extractJson(rawStep1);
     imageAnalysisResult = await locationParser.parse(jsonStep1);
+    if (imageAnalysisResult.is_travel_image === false) {
+      return {
+        success: false,
+        errorType: "INVALID_IMAGE_TYPE",
+        message:
+          "올바른 여행지나 풍경 사진이 아닙니다. 스크린샷이나 무관한 사진은 분석할 수 없습니다.",
+      };
+    }
   } catch (parseError) {
     console.error("1단계 이미지 분석 파싱 실패, 기본값 대체:", parseError);
-    // 파싱이 터졌을 때의 안전 폴백 장치
     imageAnalysisResult = {
       sido: "기록되지 않음",
       sigungu: "알 수 없음",
       spot_name: "관광 명소",
+      confidence: 0.5,
     };
   }
 
   const detectedLocation = `${imageAnalysisResult.sido} ${imageAnalysisResult.sigungu} ${imageAnalysisResult.spot_name}`;
 
-  // 유저가 준 힌트가 없다면 검증 패스하고 바로 결과 반환
   if (!userHint || userHint.trim() === "") {
     return {
       success: true,
       location: detectedLocation,
+      confidence: imageAnalysisResult.confidence ?? 0.75,
       message: "힌트가 없어 이미지로만 분석했습니다.",
     };
   }
@@ -219,11 +249,13 @@ async function analyzeAndVerifyLocation(base64Image, userHint = "") {
     userHint: userHint,
   });
 
-  const step2Response = await groq.invoke([
-    { role: "user", content: step2Input },
-  ]);
+  console.time("groq-verify");
+  const step2Response = await withTimeout(
+    groq.invoke([{ role: "user", content: step2Input }]),
+    20000,
+  );
+  console.timeEnd("groq-verify");
 
-  // [수정] 2단계 안전 파싱 처리 (readModelText 및 extractJson 적용 및 try-catch 감싸기)
   let verificationResult;
   try {
     const rawStep2 = readModelText(step2Response.content);
@@ -231,7 +263,6 @@ async function analyzeAndVerifyLocation(base64Image, userHint = "") {
     verificationResult = await verificationParser.parse(jsonStep2);
   } catch (parseError) {
     console.error("2단계 검증 결과 파싱 실패, 기본 패스 처리:", parseError);
-    // 파싱 실패 시, 무작정 에러를 내지 않고 안전하게 통과시키는 처리
     verificationResult = {
       is_matching: true,
       final_location: detectedLocation,
@@ -241,9 +272,6 @@ async function analyzeAndVerifyLocation(base64Image, userHint = "") {
   }
   console.log("verificationResult:", verificationResult);
 
-  // ==========================================
-  // [3단계] 검증 결과에 따른 백엔드 비즈니스 로직 처리
-  // ==========================================
   if (!verificationResult.is_matching) {
     return {
       success: false,
@@ -303,28 +331,27 @@ async function analyzeMoodWithGemini(base64Image, extra = "") {
   return moodParser.parse(extractJson(raw));
 }
 
-async function recommendTravelPlace(prompt) {
+async function recommendTravelPlace(promptText) {
   try {
-    const response = await groq.invoke([
-      {
-        role: "user",
-        content: [{ type: "text", text: prompt }],
-      },
-    ]);
+    console.time("groq-recommend");
 
-    const raw = readModelText(response.content);
-    return recommendationParser.parse(extractJson(raw));
+    const structuredGroq = groq.withStructuredOutput(recommendationSchema);
+
+    const response = await withTimeout(
+      structuredGroq.invoke([
+        {
+          role: "user",
+          content: [{ type: "text", text: promptText }],
+        },
+      ]),
+      20000,
+    );
+    console.timeEnd("groq-recommend");
+
+    return response;
   } catch (error) {
     console.error("recommendTravelPlace failed:", error);
-    return {
-      spots: [
-        {
-          name: "추천 여행지",
-          region: "대한민국",
-          reason: "추천 결과를 생성하지 못해 기본 응답을 반환했습니다.",
-        },
-      ],
-    };
+    return fallbackRecommendation("대한민국");
   }
 }
 
@@ -345,7 +372,7 @@ async function findLocation(req, res, next) {
     const { image, hint } = req.body || {};
 
     if (!image) {
-      return res.status(400).json({ error: "image is required" });
+      return res.status(400).json({ error: "이미지를 먼저 업로드해 주세요." });
     }
 
     let historyHint = "";
@@ -364,7 +391,9 @@ async function findLocation(req, res, next) {
 
       if (
         parsed &&
-        (parsed.success || parsed.errorType === "CONTRADICTORY_INPUT")
+        (parsed.success ||
+          parsed.errorType === "CONTRADICTORY_INPUT" ||
+          parsed.errorType === "INVALID_IMAGE_TYPE")
       ) {
         break;
       }
@@ -388,6 +417,18 @@ async function findLocation(req, res, next) {
       });
     }
 
+    if (
+      parsed &&
+      !parsed.success &&
+      parsed.errorType === "INVALID_IMAGE_TYPE"
+    ) {
+      return res.status(400).json({
+        success: false,
+        errorType: parsed.errorType,
+        message: parsed.message,
+      });
+    }
+
     if (!parsed || !parsed.success) {
       return res.status(500).json({
         success: false,
@@ -397,7 +438,7 @@ async function findLocation(req, res, next) {
 
     const safeLocation = {
       region: parsed.location,
-      confidence: parsed.confidence ?? 0.7, // ✅ || 0 에서 ?? 0.7 로 변경
+      confidence: parsed.confidence,
     };
 
     const recommendation = await recommendTravelPlace(`
@@ -405,9 +446,7 @@ async function findLocation(req, res, next) {
 ${safeLocation.region}
 
 당신은 대한민국 최고의 국내 여행 가이드입니다.
-제시된 조건을 바탕으로, 카카오맵/네이버 지도에서 '실제 검색 및 위치 조회가 가능한' 한국의 구체적인 여행지 3곳을 추천해 주세요.
-
-이 지역과 어울리는 한국의 구체적인 여행지 10곳을 추천해 주세요.
+제시된 조건을 바탕으로, 카카오맵/네이버 지도에서 '실제 검색 및 위치 조회가 가능한' 한국의 구체적인 여행지 7곳을 추천해 주세요.
 
 ⚠️ [필수 준수 규칙 - 위반 시 에러]
 1. 존엄성 및 실존 주의:
@@ -420,7 +459,7 @@ ${safeLocation.region}
 3. 데이터 매핑 규칙:
    - "name": 지도 앱에 검색할 '최종 목적지 고유 명칭'만 명확히 작성 (예: "해운대 블루라인파크")
    - "region": 해당 명소가 위치한 '시/도 + 시/군/구'까지 정확한 행정구역 작성 (예: "부산광역시 해운대구")
-   - "reason": 왜 이 장소를 추천하는지 이유를 친절하게 설명
+   - "reason": 왜 이 장소를 추천하는지 이유를 간결하게 작성해 주세요
 
 4. 명소 명칭의 무단 축약 및 변형 금지 (매우 중요):
 - 인터넷 검색 및 지도 앱에 등록된 '정식 풀네임(Official Full Name)'을 그대로 적으십시오.
@@ -458,7 +497,6 @@ ${safeLocation.region}
 
     const validSpots = [];
 
-    // AI가 반환한 결과 중, 이름이 추정 위치 명칭을 포함하고 있다면 원천 배제
     const filteredSpots = recommendation.spots.filter((spot) => {
       return (
         !safeLocation.region.includes(spot.name) &&
@@ -496,7 +534,7 @@ async function findMood(req, res, next) {
     const { image, extra } = req.body || {};
 
     if (!image) {
-      return res.status(400).json({ error: "image is required" });
+      return res.status(400).json({ error: "이미지를 먼저 업로드해 주세요." });
     }
 
     let moodTags = null;
@@ -520,9 +558,7 @@ ${JSON.stringify(moodTags, null, 2)}
 ${extra || "(없음)"}
 
 당신은 대한민국 최고의 국내 여행 가이드입니다.
-제시된 조건을 바탕으로, 카카오맵/네이버 지도에서 '실제 검색 및 위치 조회가 가능한' 한국의 구체적인 여행지 3곳을 추천해 주세요.
-
-이 분위기와 조건에 맞는 한국의 구체적인 여행지 10곳을 추천해 주세요.
+제시된 조건을 바탕으로, 카카오맵/네이버 지도에서 '실제 검색 및 위치 조회가 가능한' 한국의 구체적인 여행지 7곳을 추천해 주세요.
 
 ⚠️ [필수 준수 규칙 - 위반 시 에러]
 1. 존엄성 및 실존 주의:
@@ -565,7 +601,7 @@ ${extra || "(없음)"}
     {
       "name": "명소 고유 명칭",
       "region": "행정구역명",
-      "reason": "추천 사유 설명"
+      "reason": "추천 사유 설명(간략하게)"
     }
   ]
 }
@@ -577,7 +613,7 @@ ${extra || "(없음)"}
     console.log("-----------------");
 
     for (const spot of recommendation.spots) {
-      if (validSpots.length >= 3) break; // 3개 채워지면 즉시 종료
+      if (validSpots.length >= 3) break;
 
       if (await verifyPlaceWithKakao(spot)) {
         validSpots.push(spot);
