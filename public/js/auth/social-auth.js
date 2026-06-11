@@ -30,12 +30,23 @@ function showAuthRedirectError() {
   window.history.replaceState({}, '', window.location.pathname);
 }
 
+// provider별 추가 스코프 (이메일/프로필 보장)
+// Kakao 는 별도 백엔드 경로(/api/auth/kakao/*)로 처리하므로 여기 없음.
+const PROVIDER_SCOPES = {
+  google: 'openid email profile',
+};
+
 // OAuth provider로 로그인한다
 async function signInWithProvider(provider, redirectTo) {
   const supabase = requireSupabase();
+  const options = { redirectTo };
+
+  const scopes = PROVIDER_SCOPES[provider];
+  if (scopes) options.scopes = scopes;
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
-    options: { redirectTo },
+    options,
   });
 
   // 소셜 로그인 오류를 전달한다
