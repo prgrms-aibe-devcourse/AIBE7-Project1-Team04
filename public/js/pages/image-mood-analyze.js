@@ -111,9 +111,7 @@ async function renderKakaoCardMap(container, place) {
   return map;
 }
 
-// 통합 지도 마운트 함수 (추정 위치 및 추천지 모두 키워드 검색 기반으로 작동)
 async function renderKakaoMaps(spots, estimatedLocationName = null) {
-  // 1. [변경 완료] 추정 위치도 이름을 가지고 키워드 검색 API로 실제 위치값 도출
   if (estimatedLocationName) {
     const estContainer = document.getElementById("estimated-map");
     if (estContainer) {
@@ -122,12 +120,11 @@ async function renderKakaoMaps(spots, estimatedLocationName = null) {
         if (results && results.length > 0) {
           const targetPlace = results[0];
           await renderKakaoCardMap(estContainer, {
-            name: targetPlace.name, // 검색 결과로 나온 깔끔한 상호명 매핑
+            name: targetPlace.name,
             latitude: targetPlace.latitude,
             longitude: targetPlace.longitude,
           });
         } else {
-          // 검색 실패 시 폴백 (서버 데이터셋 활용)
           const fallbackLat = Number(estContainer.dataset.fallbackLat);
           const fallbackLng = Number(estContainer.dataset.fallbackLng);
           if (!isNaN(fallbackLat) && !isNaN(fallbackLng)) {
@@ -144,7 +141,6 @@ async function renderKakaoMaps(spots, estimatedLocationName = null) {
     }
   }
 
-  // 2. 연관 추천 여행지 3곳 지도 렌더링
   for (const [index, spot] of spots.entries()) {
     const container = document.getElementById(`map-${index}`);
     if (!container) continue;
@@ -233,35 +229,23 @@ function configRecommendationSpots(spots) {
   sessionStorage.setItem("recommendationSpots", JSON.stringify(spots));
 }
 
-function setImageFromFile(
-  mode,
-  file,
-  imageEl,
-  placeholderEl,
-  uploadBoxEl,
-  inputEl,
-  btnEl,
-) {
+function setImageFromFile(file, imageEl, placeholderEl, uploadBoxEl, btnEl) {
   if (!file) return;
 
-  // 1. 미리보기는 기존처럼 변형 없는 ObjectURL로 즉시 띄워줍니다 (속도 최적화)
-  updatePreview(mode, file, imageEl, placeholderEl, uploadBoxEl);
+  updatePreview(file, imageEl, placeholderEl, uploadBoxEl);
 
-  // 2. AI 전송용 이미지 압축 처리
   const img = new Image();
-  img.src = state.previewUrl; // 미리보기용으로 생성된 URL 재활용
+  img.src = state.previewUrl;
 
   img.onload = () => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
-    // AI 분석에 적절한 최대 해상도 설정 (1200px 정도면 충분히 정밀함)
     const MAX_WIDTH = 1200;
     const MAX_HEIGHT = 1200;
     let width = img.width;
     let height = img.height;
 
-    // 원본 비율 유지하면서 리사이징 계산
     if (width > height) {
       if (width > MAX_WIDTH) {
         height *= MAX_WIDTH / width;
@@ -277,16 +261,12 @@ function setImageFromFile(
     canvas.width = width;
     canvas.height = height;
 
-    // 캔버스에 리사이징된 이미지 그리기
     ctx.drawImage(img, 0, 0, width, height);
 
-    // image/jpeg 형식으로 70% 화질(0.7)로 압축하여 Base64 추출
     const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
 
-    // AI에게 보낼 state에는 압축된 Base64 데이터만 저장 (접두어 제거)
     state.imageBase64 = compressedBase64.split(",")[1];
 
-    // 버튼 활성화
     btnEl.disabled = !state.imageBase64 || state.isLoading;
   };
 
@@ -421,7 +401,6 @@ async function analyzeMood() {
     await new Promise(requestAnimationFrame);
     await new Promise(requestAnimationFrame);
 
-    // 추가 안정화
     await new Promise((r) => setTimeout(r, 100));
 
     resultEl.classList.add("visible");
@@ -458,12 +437,10 @@ elements.input.addEventListener("change", (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
   setImageFromFile(
-    "mood",
     file,
     elements.preview,
     elements.placeholder,
     elements.uploadBox,
-    elements.input,
     elements.button,
   );
 });

@@ -16,7 +16,6 @@ const elements = {
   uploadBox: document.querySelector("#locationUploadBox"),
   hint: document.querySelector("#locationHintInput"),
   button: document.querySelector("#locationRecommendBtn"),
-  moveMoodBtn: document.querySelector("#moveToMoodBtn"),
   status: document.querySelector("#locationStatus"),
   error: document.querySelector("#locationError"),
   result: document.querySelector("#locationResult"),
@@ -177,7 +176,6 @@ function clearStatus(el) {
   el.textContent = "";
 }
 
-// textContent 대신 innerHTML을 사용하여 개행(<br>)이 먹히도록 수정
 function showError(el, resultEl, message) {
   el.innerHTML = message.replace(/\n/g, "<br>");
   el.classList.add("visible");
@@ -207,7 +205,6 @@ function friendlyError(error) {
     return "서버에서 이미지를 분석하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
   }
 
-  // 백엔드가 던진 모순 메시지 구조("업로드한 사진과...")를 걸러내어 그대로 반환
   if (msg && msg !== "400" && isNaN(msg)) {
     return msg;
   }
@@ -274,7 +271,7 @@ async function renderLocationResult(data) {
         <div class="custom-travel-container">
           <div class="custom-travel-item" style="flex: 1 1 100% !important;">
             <div class="travel-card">
-              <div id="estimated-map" class="travel-map" data-fallback-lat="${loc.latitude}" data-fallback-lng="${loc.longitude}"></div>
+              <div id="estimated-map" class="travel-map"></div>
               <div class="travel-card-body">
                 <div>
                   <div class="travel-card-head">
@@ -317,7 +314,7 @@ async function renderLocationResult(data) {
   return html;
 }
 
-function updatePreview(mode, file, imageEl, placeholderEl, uploadBoxEl) {
+function updatePreview(file, imageEl, placeholderEl, uploadBoxEl) {
   if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
   state.previewUrl = URL.createObjectURL(file);
   imageEl.src = state.previewUrl;
@@ -330,18 +327,10 @@ function configRecommendationSpots(spots) {
   sessionStorage.setItem("recommendationSpots", JSON.stringify(spots));
 }
 
-function setImageFromFile(
-  mode,
-  file,
-  imageEl,
-  placeholderEl,
-  uploadBoxEl,
-  inputEl,
-  btnEl,
-) {
+function setImageFromFile(file, imageEl, placeholderEl, uploadBoxEl, btnEl) {
   if (!file) return;
 
-  updatePreview(mode, file, imageEl, placeholderEl, uploadBoxEl);
+  updatePreview(file, imageEl, placeholderEl, uploadBoxEl);
 
   const img = new Image();
   img.src = state.previewUrl;
@@ -419,16 +408,21 @@ async function analyzeLocation() {
     });
 
     if (!response.ok) {
-      if (response.status === 400) {
-        const errorData = await response.json();
+      const errorData = await response.json();
 
-        console.log("400 응답 데이터");
-        console.log(errorData);
+      console.error("에러 메시지:", errorData.message);
+      alert(errorData.message);
+      return;
+      // if (response.status === 400) {
+      //   const errorData = await response.json();
 
-        throw new Error(`${errorData.message}\n💡 사유: ${errorData.reason}`);
-      }
+      //   console.log("400 응답 데이터");
+      //   console.log(errorData);
 
-      throw new Error(String(response.status));
+      //   throw new Error(`${errorData.message}\n💡 사유: ${errorData.reason}`);
+      // }
+
+      // throw new Error(String(response.status));
     }
 
     const data = await response.json();
@@ -440,12 +434,11 @@ async function analyzeLocation() {
     await new Promise(requestAnimationFrame);
     await new Promise(requestAnimationFrame);
 
-    await new Promise((r) => setTimeout(r, 3000));
+    await new Promise((r) => setTimeout(r, 100));
     const estName = data.location?.region || null;
     resultEl.classList.add("visible");
     await renderKakaoMaps(data.recommendation?.spots || [], estName);
 
-    elements.moveMoodBtn.classList.remove("d-none");
     setStatus(statusEl, "분석 완료");
   } catch (error) {
     console.log("catch 진입");
@@ -480,20 +473,14 @@ document.body.addEventListener("click", (event) => {
   window.location.href = "/pages/itinerary-create.html";
 });
 
-elements.moveMoodBtn.addEventListener("click", () => {
-  window.location.href = "/pages/image-mood-analyze.html";
-});
-
 elements.input.addEventListener("change", (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
   setImageFromFile(
-    "location",
     file,
     elements.preview,
     elements.placeholder,
     elements.uploadBox,
-    elements.input,
     elements.button,
   );
 });
