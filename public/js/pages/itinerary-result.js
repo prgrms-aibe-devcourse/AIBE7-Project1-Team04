@@ -584,6 +584,7 @@ function bindTimelineMapLinks(screen) {
   items.forEach((item) => {
     item.addEventListener("click", (event) => {
       const editButton = event.target.closest(".edit-itinerary-item-button");
+      const addButton = event.target.closest(".add-itinerary-item-button");
       const deleteButton = event.target.closest(
         ".delete-itinerary-item-button",
       );
@@ -591,6 +592,12 @@ function bindTimelineMapLinks(screen) {
       if (editButton) {
         event.stopPropagation();
         handleOpenEditItineraryItem(item);
+        return;
+      }
+
+      if (addButton) {
+        event.stopPropagation();
+        handleOpenAddItineraryItem(item);
         return;
       }
 
@@ -687,6 +694,23 @@ function handleOpenEditItineraryItem(timelineItem) {
   }
 
   openEditItineraryModal(target);
+}
+
+function handleOpenAddItineraryItem(timelineItem) {
+  const itemId = timelineItem.dataset.itemId;
+  const dayNumber = Number(timelineItem.dataset.day);
+  const order = Number(timelineItem.dataset.order);
+
+  const target =
+    findItineraryItemById(itemId) ||
+    findItineraryItemByDayAndOrder(dayNumber, order);
+
+  if (!target?.item) {
+    showToast("새 일정을 추가할 기준 일정을 찾지 못했습니다.");
+    return;
+  }
+
+  openAddItineraryModal(target);
 }
 
 function findItineraryItemById(itemId) {
@@ -788,6 +812,36 @@ function parseOptionalNumber(value) {
   const number = Number(text);
 
   return Number.isFinite(number) ? number : null;
+}
+
+function createUserAddedItineraryItem({
+  dayNumber,
+  insertAfterIndex,
+  placeName,
+  address,
+  category,
+  reason,
+  lat,
+  lng,
+}) {
+  const now = new Date().toISOString();
+
+  return {
+    id: createItineraryItemId(dayNumber, insertAfterIndex + 1),
+    order: insertAfterIndex + 2,
+    sectionTitle: "추가 일정",
+    placeName,
+    address,
+    category,
+    area: "",
+    reason: reason || "사용자가 직접 추가한 일정입니다.",
+    lat,
+    lng,
+    latitude: lat,
+    longitude: lng,
+    isUserAdded: true,
+    addedAt: now,
+  };
 }
 
 function resetSaveButtonState() {
@@ -903,6 +957,7 @@ function createTimelineItem(item, index, dayNumber) {
           <div class="place-card__actions">
             <button class="map-focus-button" type="button">지도에서 보기</button>
             <button class="edit-itinerary-item-button" type="button">수정</button>
+            <button class="add-itinerary-item-button" type="button">뒤에 추가</button>
             <button class="delete-itinerary-item-button" type="button">삭제</button>
           </div>
         </div>
@@ -1368,6 +1423,416 @@ function getIconByCategory(category = "") {
   return "🗺️";
 }
 
+function bindKakaoPlaceSearchInEditModal(modal) {
+  const form = modal.querySelector(".itinerary-edit-form");
+  const keywordInput = modal.querySelector("input[name='placeName']");
+  const searchButton = modal.querySelector("[data-place-search]");
+  const resultsBox = modal.querySelector("[data-place-search-results]");
+
+  if (!form || !keywordInput || !searchButton || !resultsBox) return;
+
+  searchButton.addEventListener("click", async () => {
+    const keyword = keywordInput.value.trim();
+
+    if (!keyword) {
+      showToast("검색할 장소명을 입력해 주세요.");
+      keywordInput.focus();
+      return;
+    }
+
+    searchButton.disabled = true;
+    searchButton.textContent = "검색 중...";
+    resultsBox.hidden = false;
+    resultsBox.innerHTML = `
+      <p class="itinerary-place-search-results__empty">
+        장소를 검색하고 있습니다.
+      </p>
+    `;
+
+    try {
+      const places = await searchKakaoPlaces(keyword);
+      renderKakaoPlaceSearchResults(resultsBox, places, form);
+    } catch (error) {
+      console.error("[장소 검색 실패]", error);
+      resultsBox.hidden = false;
+      resultsBox.innerHTML = `
+        <p class="itinerary-place-search-results__empty">
+          장소 검색 중 문제가 발생했습니다. 카카오맵 services 라이브러리를 확인해 주세요.
+        </p>
+      `;
+    } finally {
+      searchButton.disabled = false;
+      searchButton.textContent = "장소 검색";
+    }
+  });
+}
+
+function searchKakaoPlaces(keyword) {
+  return new Promise((resolve, reject) => {
+    if (!window.kakao?.maps?.services?.Places) {
+      reject(new Error("Kakao places service is not available."));
+      return;
+    }
+
+    const places = kakaoMapState.map
+      ? new kakao.maps.services.Places(kakaoMapState.map)
+      : new kakao.maps.services.Places();
+
+    places.keywordSearch(
+      keyword,
+      (data, status) => {
+        if (status === kakao.maps.services.Status.OK) {
+          resolve(Array.isArray(data) ? data.slice(0, 5) : []);
+          return;
+        }
+
+        if (status === kakao.maps.services.Status.ZERO_RESULT) {
+          resolve([]);
+          return;
+        }
+
+        reject(new Error(`Kakao place search failed: ${status}`));
+      },
+      {
+        size: 5,
+      },
+    );
+  });
+}
+
+function renderKakaoPlaceSearchResults(resultsBox, places, form) {
+  if (!Array.isArray(places) || places.length === 0) {
+    resultsBox.hidden = false;
+    resultsBox.innerHTML = `
+      <p class="itinerary-place-search-results__empty">
+        검색 결과가 없습니다. 장소명을 조금 더 구체적으로 입력해 주세요.
+      </p>
+    `;
+    return;
+  }
+
+  resultsBox.hidden = false;
+  resultsBox.innerHTML = places
+    .map((place, index) => {
+      const address = place.road_address_name || place.address_name || "";
+      const category = getKakaoPlaceCategory(place);
+
+      return `
+        <button
+          class="itinerary-place-search-result"
+          type="button"
+          data-place-index="${index}"
+        >
+          <strong>${escapeHtml(place.place_name || "이름 없는 장소")}</strong>
+          <span>${escapeHtml(address || "주소 정보 없음")}</span>
+          ${category ? `<small>${escapeHtml(category)}</small>` : ""}
+        </button>
+      `;
+    })
+    .join("");
+
+  resultsBox.querySelectorAll("[data-place-index]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const index = Number(button.dataset.placeIndex);
+      const selectedPlace = places[index];
+
+      if (!selectedPlace) return;
+
+      fillEditFormWithKakaoPlace(form, selectedPlace);
+      resultsBox.hidden = true;
+      resultsBox.innerHTML = "";
+      showToast("선택한 장소 정보가 입력되었습니다.");
+    });
+  });
+}
+
+function fillEditFormWithKakaoPlace(form, place) {
+  const placeName = place.place_name || "";
+  const address = place.road_address_name || place.address_name || "";
+  const category = getKakaoPlaceCategory(place);
+
+  const lat = Number(place.y);
+  const lng = Number(place.x);
+
+  setFormFieldValue(form, "placeName", placeName);
+  setFormFieldValue(form, "address", address);
+
+  if (category) {
+    setFormFieldValue(form, "category", category);
+  }
+
+  if (Number.isFinite(lat)) {
+    setFormFieldValue(form, "lat", lat);
+  }
+
+  if (Number.isFinite(lng)) {
+    setFormFieldValue(form, "lng", lng);
+  }
+}
+
+function setFormFieldValue(form, name, value) {
+  const field = form.querySelector(`[name="${name}"]`);
+
+  if (!field) return;
+
+  field.value = value ?? "";
+}
+
+function getKakaoPlaceCategory(place) {
+  if (place.category_group_name) {
+    return place.category_group_name;
+  }
+
+  const categoryName = String(place.category_name || "");
+  const parts = categoryName
+    .split(">")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  return parts.at(-1) || "";
+}
+
+function openAddItineraryModal({ day, item, itemIndex }) {
+  closeEditItineraryModal();
+  removeEditModalEscapeHandler();
+
+  const dayNumber = day?.day || resultState.selectedDay;
+  const insertAfterOrder = item?.order || itemIndex + 1;
+
+  const modal = document.createElement("div");
+  modal.className = "itinerary-edit-modal-backdrop";
+  modal.setAttribute("role", "presentation");
+
+  modal.innerHTML = `
+    <div
+      class="itinerary-edit-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="addItineraryModalTitle"
+    >
+      <div class="itinerary-edit-modal__header">
+        <div>
+          <p class="itinerary-edit-modal__eyebrow">Day ${escapeHtml(dayNumber)} · ${escapeHtml(insertAfterOrder)}번째 일정 뒤에 추가</p>
+          <h3 id="addItineraryModalTitle">새 일정 추가</h3>
+        </div>
+        <button
+          class="itinerary-edit-modal__close"
+          type="button"
+          aria-label="추가 창 닫기"
+          data-edit-close
+        >
+          ×
+        </button>
+      </div>
+
+      <form class="itinerary-edit-form">
+        <label>
+          <span>장소명</span>
+          <div class="itinerary-place-search-row">
+            <input
+              type="text"
+              name="placeName"
+              value=""
+              placeholder="예: 광치기해변"
+              required
+            />
+            <button
+              class="itinerary-place-search-button"
+              type="button"
+              data-place-search
+            >
+              장소 검색
+            </button>
+          </div>
+        </label>
+
+        <div
+          class="itinerary-place-search-results"
+          data-place-search-results
+          aria-live="polite"
+          hidden
+        ></div>
+
+        <label>
+          <span>주소</span>
+          <input
+            type="text"
+            name="address"
+            value=""
+            placeholder="장소 검색 결과를 선택하면 자동으로 입력됩니다."
+          />
+        </label>
+
+        <label>
+          <span>카테고리</span>
+          <input
+            type="text"
+            name="category"
+            value=""
+            placeholder="예: 관광지, 식당, 카페"
+          />
+        </label>
+
+        <label>
+          <span>추천 이유 / 메모</span>
+          <textarea
+            name="reason"
+            rows="4"
+            placeholder="이 장소를 일정에 추가하는 이유를 적어주세요."
+          ></textarea>
+        </label>
+
+        <div class="itinerary-edit-form__grid">
+          <label>
+            <span>위도</span>
+            <input
+              type="number"
+              step="any"
+              name="lat"
+              value=""
+              placeholder="장소 검색 결과를 선택하면 자동 입력"
+            />
+          </label>
+
+          <label>
+            <span>경도</span>
+            <input
+              type="number"
+              step="any"
+              name="lng"
+              value=""
+              placeholder="장소 검색 결과를 선택하면 자동 입력"
+            />
+          </label>
+        </div>
+
+        <div class="itinerary-edit-modal__notice">
+          추가 일정은 선택한 일정 바로 뒤에 삽입됩니다.
+          지도에 표시하려면 장소 검색 결과를 선택하거나 위도와 경도를 직접 입력해 주세요.
+        </div>
+
+        <div class="itinerary-edit-modal__actions">
+          <button type="button" class="ghost-button" data-edit-close>
+            취소
+          </button>
+          <button type="submit" class="primary-button">
+            추가
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  document.body.append(modal);
+  document.body.classList.add("is-modal-open");
+
+  modal.querySelector("input[name='placeName']")?.focus();
+
+  bindKakaoPlaceSearchInEditModal(modal);
+
+  modal.querySelectorAll("[data-edit-close]").forEach((button) => {
+    button.addEventListener("click", closeEditItineraryModal);
+  });
+
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) {
+      closeEditItineraryModal();
+    }
+  });
+
+  modal
+    .querySelector(".itinerary-edit-form")
+    ?.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const form = event.currentTarget;
+      const formData = new FormData(form);
+
+      const placeName = getTrimmedFormValue(formData, "placeName");
+      const address = getTrimmedFormValue(formData, "address");
+      const category = getTrimmedFormValue(formData, "category");
+      const reason = getTrimmedFormValue(formData, "reason");
+
+      const lat = parseOptionalNumber(formData.get("lat"));
+      const lng = parseOptionalNumber(formData.get("lng"));
+
+      if (!placeName) {
+        showToast("장소명을 입력해 주세요.");
+        form.querySelector("[name='placeName']")?.focus();
+        return;
+      }
+
+      if (lat === null || lng === null) {
+        showToast("장소 검색 결과를 선택하거나 위도와 경도를 입력해 주세요.");
+        return;
+      }
+
+      if (lat < -90 || lat > 90) {
+        showToast("위도는 -90부터 90 사이의 값이어야 합니다.");
+        return;
+      }
+
+      if (lng < -180 || lng > 180) {
+        showToast("경도는 -180부터 180 사이의 값이어야 합니다.");
+        return;
+      }
+
+      let didAdd = false;
+
+      updateEditableItinerary(
+        (itinerary) => {
+          const target = findItineraryItemInItinerary(
+            itinerary,
+            item.id,
+            Number(dayNumber),
+            Number(insertAfterOrder),
+          );
+
+          if (!target?.day || !target?.item) return;
+
+          if (!Array.isArray(target.day.items)) {
+            target.day.items = [];
+          }
+
+          const newItem = createUserAddedItineraryItem({
+            dayNumber: Number(dayNumber),
+            insertAfterIndex: target.itemIndex,
+            placeName,
+            address,
+            category,
+            reason,
+            lat,
+            lng,
+          });
+
+          target.day.items.splice(target.itemIndex + 1, 0, newItem);
+          didAdd = true;
+        },
+        {
+          updateMap: true,
+          scrollTimeline: false,
+        },
+      );
+
+      if (!didAdd) {
+        showToast("새 일정을 추가할 위치를 찾지 못했습니다.");
+        return;
+      }
+
+      closeEditItineraryModal();
+      showToast("새 일정이 추가되었습니다.");
+    });
+
+  const handleEscape = (event) => {
+    if (event.key === "Escape") {
+      closeEditItineraryModal();
+    }
+  };
+
+  activeEditModalEscapeHandler = handleEscape;
+  document.addEventListener("keydown", handleEscape);
+}
+
 function openEditItineraryModal({ day, item, itemIndex }) {
   closeEditItineraryModal();
   removeEditModalEscapeHandler();
@@ -1506,6 +1971,8 @@ function openEditItineraryModal({ day, item, itemIndex }) {
   document.body.classList.add("is-modal-open");
 
   modal.querySelector("input[name='placeName']")?.focus();
+
+  bindKakaoPlaceSearchInEditModal(modal);
 
   modal.querySelectorAll("[data-edit-close]").forEach((button) => {
     button.addEventListener("click", closeEditItineraryModal);
