@@ -124,6 +124,10 @@ function bindAuthUi(session) {
 
   document.getElementById("logoutBtn")?.addEventListener("click", () => {
     localStorage.removeItem("session");
+    // supabase-js 가 자체 저장한 세션도 제거 (사회적 로그인 잔존 세션 방지)
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith("sb-"))
+      .forEach((k) => localStorage.removeItem(k));
     window.location.href = "/";
   });
 }
