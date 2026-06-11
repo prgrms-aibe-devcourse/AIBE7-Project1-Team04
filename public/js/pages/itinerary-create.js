@@ -24,25 +24,29 @@ function restorePreviousPayload() {
   const payload = loadPayload() || {};
   const selectedSpot = getSelectedSpotFromSession();
 
+  const basePayload = {
+    ...payload,
+    notes: cleanImageAnalyzeNotes(payload.notes),
+    provider: DEFAULT_PROVIDER,
+
+    budgetAmount: payload.budgetAmount || extractBudgetAmount(payload.budget),
+    budgetType: payload.budgetType || extractBudgetType(payload.budget),
+  };
+
   const nextPayload = selectedSpot
     ? {
-        ...payload,
+        ...basePayload,
+
+        // selectedSpot.name → keyword
         keyword: selectedSpot.name,
+
+        // selectedSpot.region → destination
         destination: selectedSpot.region || selectedSpot.name,
-        notes: cleanImageAnalyzeNotes(payload.notes),
-        provider: DEFAULT_PROVIDER,
-        budgetType: payload.budgetType || extractBudgetType(payload.budget),
-        budgetAmount:
-          payload.budgetAmount || extractBudgetAmount(payload.budget),
+
+        // 이미지 분석에서 새로 넘어온 경우 추가 조건 초기화
+        notes: "",
       }
-    : {
-        ...payload,
-        notes: cleanImageAnalyzeNotes(payload.notes),
-        provider: DEFAULT_PROVIDER,
-        budgetType: payload.budgetType || extractBudgetType(payload.budget),
-        budgetAmount:
-          payload.budgetAmount || extractBudgetAmount(payload.budget),
-      };
+    : basePayload;
 
   if (Object.keys(nextPayload).length === 0) return;
 
@@ -51,23 +55,28 @@ function restorePreviousPayload() {
   setFieldValue("departure", nextPayload.departure);
   setFieldValue("days", nextPayload.days);
   setFieldValue("people", nextPayload.people);
-  setFieldValue(
-    "budget",
-    nextPayload.budgetAmount || extractBudgetAmount(nextPayload.budget),
-  );
-  setRadioValue(
-    "budgetType",
-    nextPayload.budgetType || extractBudgetType(nextPayload.budget),
-  );
+
+  setFieldValue("budgetAmount", nextPayload.budgetAmount);
+  setRadioValue("budgetType", nextPayload.budgetType || "perPerson");
+
   setFieldValue("provider", DEFAULT_PROVIDER);
+
+  // selectedSpot이 있으면 여기서 빈 문자열이 들어가므로 textarea가 초기화됨
   setFieldValue("notes", nextPayload.notes);
 
   if (selectedSpot) {
     savePayload(nextPayload);
     sessionStorage.removeItem("selectedSpot");
     sessionStorage.removeItem("name");
-  } else if (payload.notes !== nextPayload.notes) {
-    // 예전 방식으로 저장된 자동 문구 제거 반영
+    return;
+  }
+
+  const shouldSave =
+    payload.notes !== nextPayload.notes ||
+    payload.provider !== DEFAULT_PROVIDER ||
+    (!payload.budgetAmount && Boolean(payload.budget));
+
+  if (shouldSave) {
     savePayload(nextPayload);
   }
 }
