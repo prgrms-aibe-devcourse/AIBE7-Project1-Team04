@@ -81,7 +81,7 @@ ${refine}
 [반환 JSON 스키마]
 {
   "destinationTitle": "도시 또는 여행 주제명",
-  "headline": "예: 제주, 2박 3일 추천일정입니다.",
+  "headline": "제주, 2박 3일 추천일정입니다.",
   "subTitle": "짧은 안내 문구",
   "keyword": "${keyword}",
   "nights": ${nights},

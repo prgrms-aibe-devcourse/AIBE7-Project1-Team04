@@ -625,10 +625,9 @@ function bindTimelineMapLinks(screen) {
         return;
       }
 
-      const isButton = event.target.closest(".map-focus-button");
       const isCard = event.target.closest(".place-card");
 
-      if (!isButton && !isCard) return;
+      if (!isCard) return;
 
       focusMapPointByTimelineItem(item);
     });
@@ -973,15 +972,14 @@ function createTimelineItem(item, index, dayNumber) {
         <div class="place-card__header">
           <h4>${escapeHtml(item.placeName || "추천 장소")}</h4>
           <div class="place-card__actions">
-            <button class="map-focus-button" type="button">지도에서 보기</button>
-            <button class="edit-itinerary-item-button" type="button">수정</button>
             <button class="add-itinerary-item-button" type="button">뒤에 추가</button>
+            <button class="edit-itinerary-item-button" type="button">수정</button>
             <button class="delete-itinerary-item-button" type="button">삭제</button>
           </div>
         </div>
         <p class="place-meta">${escapeHtml(meta)}</p>
         <p class="place-reason">
-          <strong>추천</strong>
+          <strong>메모</strong>
           ${escapeHtml(item.reason || "조건에 맞춰 추천된 장소입니다.")}
         </p>
         <div class="place-extra">
@@ -1327,7 +1325,7 @@ function createItineraryText(itinerary) {
       }
 
       if (item.reason) {
-        lines.push(`- 추천 이유: ${item.reason}`);
+        lines.push(`- 메모: ${item.reason}`);
       }
 
       if (item.duration) {
@@ -1692,7 +1690,7 @@ function openAddItineraryModal({ day, item, itemIndex }) {
         </label>
 
         <label>
-          <span>추천 이유 / 메모</span>
+          <span>메모</span>
           <textarea
             name="reason"
             rows="4"
@@ -1700,34 +1698,13 @@ function openAddItineraryModal({ day, item, itemIndex }) {
           ></textarea>
         </label>
 
-        <div class="itinerary-edit-form__grid">
-          <label>
-            <span>위도</span>
-            <input
-              type="number"
-              step="any"
-              name="lat"
-              value=""
-              placeholder="장소 검색 결과를 선택하면 자동 입력"
-            />
-          </label>
+        <input type="hidden" name="lat" value="" />
+<input type="hidden" name="lng" value="" />
 
-          <label>
-            <span>경도</span>
-            <input
-              type="number"
-              step="any"
-              name="lng"
-              value=""
-              placeholder="장소 검색 결과를 선택하면 자동 입력"
-            />
-          </label>
-        </div>
-
-        <div class="itinerary-edit-modal__notice">
-          추가 일정은 선택한 일정 바로 뒤에 삽입됩니다.
-          지도에 표시하려면 장소 검색 결과를 선택하거나 위도와 경도를 직접 입력해 주세요.
-        </div>
+<div class="itinerary-edit-modal__notice">
+  추가 일정은 선택한 일정 바로 뒤에 삽입됩니다.
+  장소 검색 결과를 선택하면 지도 위치가 자동으로 함께 반영됩니다.
+</div>
 
         <div class="itinerary-edit-modal__actions">
           <button type="button" class="ghost-button" data-edit-close>
@@ -1781,7 +1758,7 @@ function openAddItineraryModal({ day, item, itemIndex }) {
       }
 
       if (lat === null || lng === null) {
-        showToast("장소 검색 결과를 선택하거나 위도와 경도를 입력해 주세요.");
+        showToast("장소 검색 결과를 선택해 주세요.");
         return;
       }
 
@@ -1936,7 +1913,7 @@ function openEditItineraryModal({ day, item, itemIndex }) {
         </label>
 
         <label>
-          <span>추천 이유 / 메모</span>
+          <span>메모</span>
           <textarea
             name="reason"
             rows="4"
@@ -1944,33 +1921,11 @@ function openEditItineraryModal({ day, item, itemIndex }) {
           >${escapeHtml(item.reason || "")}</textarea>
         </label>
 
-        <div class="itinerary-edit-form__grid">
-          <label>
-            <span>위도</span>
-            <input
-              type="number"
-              step="any"
-              name="lat"
-              value="${escapeHtml(lat)}"
-              placeholder="예: 33.4305"
-            />
-          </label>
-
-          <label>
-            <span>경도</span>
-            <input
-              type="number"
-              step="any"
-              name="lng"
-              value="${escapeHtml(lng)}"
-              placeholder="예: 126.9278"
-            />
-          </label>
-        </div>
+        <input type="hidden" name="lat" value="${escapeHtml(lat)}" />
+        <input type="hidden" name="lng" value="${escapeHtml(lng)}" />
 
         <div class="itinerary-edit-modal__notice">
-          장소명을 변경하는 경우 지도 위치가 어긋나지 않도록 위도와 경도도 함께 확인해 주세요.
-  위도/경도를 비워두면 기존 좌표를 유지합니다.
+          장소 검색 결과를 선택하면 지도 위치가 자동으로 함께 반영됩니다.
         </div>
 
         <div class="itinerary-edit-modal__actions">
