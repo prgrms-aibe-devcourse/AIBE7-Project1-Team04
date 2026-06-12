@@ -538,6 +538,19 @@ function clearKakaoMap() {
   }
 }
 
+function isMappableItem(item) {
+  const lat = Number(item.lat ?? item.latitude);
+  const lng = Number(item.lng ?? item.longitude);
+
+  return (
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    item.verifyStatus !== "regional_placeholder" &&
+    item.verifyStatus !== "not_found" &&
+    item.isVerified !== false
+  );
+}
+
 function getMapPointsByDay(itinerary, dayNumber) {
   const days = Array.isArray(itinerary.days) ? itinerary.days : [];
   const selectedDay = days.find((day) => Number(day.day) === Number(dayNumber));
@@ -546,28 +559,22 @@ function getMapPointsByDay(itinerary, dayNumber) {
 
   const items = Array.isArray(selectedDay.items) ? selectedDay.items : [];
 
-  return items
-    .map((item, index) => {
-      const lat = Number(item.lat ?? item.latitude);
-      const lng = Number(item.lng ?? item.longitude);
+  return items.filter(isMappableItem).map((item, index) => {
+    const lat = Number(item.lat ?? item.latitude);
+    const lng = Number(item.lng ?? item.longitude);
 
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-        return null;
-      }
-
-      return {
-        day: Number(selectedDay.day),
-        order: Number(item.order || index + 1),
-        placeName: item.placeName || "추천 장소",
-        category: item.category || "",
-        area: item.area || "",
-        address: item.address || "",
-        reason: item.reason || "",
-        lat,
-        lng,
-      };
-    })
-    .filter(Boolean);
+    return {
+      day: Number(selectedDay.day),
+      order: Number(item.order || index + 1),
+      placeName: item.placeName || "추천 장소",
+      category: item.category || "",
+      area: item.area || "",
+      address: item.address || "",
+      reason: item.reason || "",
+      lat,
+      lng,
+    };
+  });
 }
 
 function getFallbackCenter(itinerary) {

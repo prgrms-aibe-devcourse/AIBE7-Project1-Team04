@@ -5,6 +5,9 @@ async function searchKakaoPlaces({
   categoryGroupCode,
   size = 10,
   timeoutMs = 2500,
+  x,
+  y,
+  radius,
 }) {
   const apiKey = process.env.KAKAO_REST_API_KEY;
 
@@ -15,7 +18,22 @@ async function searchKakaoPlaces({
   const params = new URLSearchParams();
   params.set("query", query);
   params.set("size", String(size));
-  params.set("sort", "accuracy");
+  const lng = Number(x);
+  const lat = Number(y);
+  const searchRadius = Number(radius);
+
+  if (Number.isFinite(lng) && Number.isFinite(lat)) {
+    params.set("x", String(lng));
+    params.set("y", String(lat));
+
+    if (Number.isFinite(searchRadius)) {
+      params.set("radius", String(searchRadius));
+    }
+
+    params.set("sort", "distance");
+  } else {
+    params.set("sort", "accuracy");
+  }
 
   if (categoryGroupCode) {
     params.set("category_group_code", categoryGroupCode);
