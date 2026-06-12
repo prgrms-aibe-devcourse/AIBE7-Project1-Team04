@@ -370,6 +370,104 @@ function setImageFromFile(file, imageEl, placeholderEl, uploadBoxEl, btnEl) {
   };
 }
 
+async function mountLocationResult(data, resultEl, statusEl) {
+  configRecommendationSpots(data.recommendation?.spots || []);
+
+  resultEl.innerHTML = await renderLocationResult(data);
+
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+
+  await new Promise((r) => setTimeout(r, 100));
+  const estName = data.location?.region || null;
+  resultEl.classList.add("visible");
+  await renderKakaoMaps(data.recommendation?.spots || [], estName);
+
+  setStatus(statusEl, "분석 완료");
+}
+
+function renderLocationChoice(data) {
+  const imageGuess = data.imageGuess || "AI가 추정한 장소";
+  const hintLocation = data.hintLocation || data.userHint || "입력하신 힌트";
+  const userHint = data.userHint || "";
+  const reason = data.reason || "";
+  const hintLabel = userHint
+    ? `${escapeHtml(hintLocation)} (입력하신 힌트: "${escapeHtml(userHint)}")`
+    : escapeHtml(hintLocation);
+
+  return `
+    <div class="custom-travel-container fade-up">
+      <div class="custom-travel-item" style="flex: 1 1 100% !important;">
+        <div class="travel-card">
+          <div class="travel-card-body">
+            <div>
+              <div class="travel-card-head">
+                <h4 class="travel-card-title">🤔 어느 위치로 추천을 진행할까요?</h4>
+              </div>
+              <p class="travel-reason">
+                AI가 사진을 분석한 결과와 입력하신 힌트가 서로 다른 장소를 가리키고 있어요.${
+                  reason ? `<br>💡 ${escapeHtml(reason)}` : ""
+                }
+              </p>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+              <button
+                type="button"
+                class="btn btn-outline-primary loc-choice-btn"
+                data-location="${escapeHtml(imageGuess)}"
+              >
+                📷 AI 추정: ${escapeHtml(imageGuess)}
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-secondary loc-choice-btn"
+                data-location="${escapeHtml(hintLocation)}"
+              >
+                ✏️ 입력한 힌트 기준: ${hintLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function confirmLocationChoice(
+  location,
+  statusEl,
+  errorEl,
+  resultEl,
+  choiceContainer,
+) {
+  clearError(errorEl);
+  setStatus(statusEl, "선택한 위치로 추천 생성 중", true);
+  if (choiceContainer) {
+    choiceContainer
+      .querySelectorAll(".loc-choice-btn")
+      .forEach((b) => (b.disabled = true));
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/api/confirm-location`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ location }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || String(response.status));
+    }
+
+    const data = await response.json();
+    await mountLocationResult(data, resultEl, statusEl);
+  } catch (error) {
+    showError(errorEl, resultEl, friendlyError(error));
+    clearStatus(statusEl);
+  }
+}
+
 async function analyzeLocation() {
   const hintInput = elements.hint;
   const btn = elements.button;
@@ -413,33 +511,33 @@ async function analyzeLocation() {
       console.error("에러 메시지:", errorData.message);
       alert(errorData.message);
       return;
-      // if (response.status === 400) {
-      //   const errorData = await response.json();
-
-      //   console.log("400 응답 데이터");
-      //   console.log(errorData);
-
-      //   throw new Error(`${errorData.message}\n💡 사유: ${errorData.reason}`);
-      // }
-
-      // throw new Error(String(response.status));
     }
 
     const data = await response.json();
-    configRecommendationSpots(data.recommendation?.spots || []);
     if (requestId !== state.requestId) return;
 
-    resultEl.innerHTML = await renderLocationResult(data);
+    if (data.needsUserChoice) {
+      clearInterval(timer);
+      resultEl.innerHTML = renderLocationChoice(data);
+      resultEl.classList.add("visible");
+      setStatus(statusEl, "선택이 필요합니다");
 
-    await new Promise(requestAnimationFrame);
-    await new Promise(requestAnimationFrame);
+      resultEl.querySelectorAll(".loc-choice-btn").forEach((choiceBtn) => {
+        choiceBtn.addEventListener("click", () => {
+          confirmLocationChoice(
+            choiceBtn.dataset.location,
+            statusEl,
+            errorEl,
+            resultEl,
+            resultEl,
+          );
+        });
+      });
 
-    await new Promise((r) => setTimeout(r, 100));
-    const estName = data.location?.region || null;
-    resultEl.classList.add("visible");
-    await renderKakaoMaps(data.recommendation?.spots || [], estName);
+      return;
+    }
 
-    setStatus(statusEl, "분석 완료");
+    await mountLocationResult(data, resultEl, statusEl);
   } catch (error) {
     console.log("catch 진입");
     console.log(error);
