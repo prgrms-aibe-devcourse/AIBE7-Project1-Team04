@@ -104,12 +104,19 @@ async function updateTrip(req, res, next) {
     const user = await resolveUser(token);
     const client = userClient(token);
 
-    const { title } = req.body;
-    if (!title?.trim()) return res.status(400).json({ message: 'title이 필요합니다.' });
+    const { title, payload, itinerary } = req.body;
+    const updates = { updated_at: new Date().toISOString() };
+    if (typeof title === 'string' && title.trim()) updates.title = title.trim();
+    if (payload !== undefined) updates.payload = payload;
+    if (itinerary !== undefined) updates.itinerary = itinerary;
+
+    if (Object.keys(updates).length === 1) {
+      return res.status(400).json({ message: '업데이트할 필드가 없습니다.' });
+    }
 
     const { data, error } = await client
       .from('trips')
-      .update({ title: title.trim(), updated_at: new Date().toISOString() })
+      .update(updates)
       .eq('id', req.params.id)
       .eq('user_id', user.id)
       .select()

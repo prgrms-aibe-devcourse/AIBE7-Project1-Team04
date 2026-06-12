@@ -1,5 +1,6 @@
 const PAYLOAD_KEY = "PicTrip.payload";
 const ITINERARY_KEY = "PicTrip.itinerary";
+const TRIP_ID_KEY = "PicTrip.tripId";
 
 export function savePayload(payload) {
   sessionStorage.setItem(PAYLOAD_KEY, JSON.stringify(payload));
@@ -19,6 +20,19 @@ export function loadItinerary() {
 
 export function clearItinerary() {
   sessionStorage.removeItem(ITINERARY_KEY);
+}
+
+export function saveTripId(id) {
+  if (id == null) return;
+  sessionStorage.setItem(TRIP_ID_KEY, String(id));
+}
+
+export function loadTripId() {
+  return sessionStorage.getItem(TRIP_ID_KEY) || null;
+}
+
+export function clearTripId() {
+  sessionStorage.removeItem(TRIP_ID_KEY);
 }
 
 function readJson(key) {
