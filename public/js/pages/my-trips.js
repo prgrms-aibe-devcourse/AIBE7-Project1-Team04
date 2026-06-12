@@ -4,6 +4,10 @@ const container = document.querySelector('#tripsContainer');
 
 init();
 
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) init();
+});
+
 async function init() {
   const session = JSON.parse(localStorage.getItem('session') || 'null');
   if (!session?.access_token) {
@@ -84,7 +88,7 @@ function createTripCard(trip, token) {
   `;
 
   card.querySelector('[data-action="view"]').addEventListener('click', () => viewTrip(trip.id, token));
-  card.querySelector('[data-action="rename"]').addEventListener('click', () => startRename(card, trip, token));
+  card.querySelector('[data-action="rename"]').onclick = () => startRename(card, trip, token);
   card.querySelector('[data-action="delete"]').addEventListener('click', () => confirmDelete(trip.id, token, card));
 
   return card;
@@ -102,8 +106,10 @@ async function viewTrip(id, token) {
     }
 
     const { trip } = await res.json();
+    const itinerary = trip.itinerary || {};
+    if (trip.title) itinerary.headline = trip.title;
     savePayload(trip.payload || {});
-    saveItinerary(trip.itinerary);
+    saveItinerary(itinerary);
     window.location.href = '/pages/itinerary-result.html';
   } catch (_err) {
     showToast('오류가 발생했습니다.');
@@ -129,6 +135,17 @@ function startRename(card, trip, token) {
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') commitRename(input, trip, card, token);
     if (e.key === 'Escape') cancelRename(input, trip, card, token);
+  });
+
+  input.addEventListener('blur', (e) => {
+    if (card.contains(e.relatedTarget)) return;
+    if (!input.isConnected) return;
+    const newTitle = input.value.trim();
+    if (newTitle && newTitle !== trip.title) {
+      commitRename(input, trip, card, token);
+    } else {
+      cancelRename(input, trip, card, token);
+    }
   });
 }
 
