@@ -1,4 +1,4 @@
-const dotenv = require("dotenv");
+﻿const dotenv = require("dotenv");
 const { z } = require("zod");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { PromptTemplate } = require("@langchain/core/prompts");
@@ -67,6 +67,11 @@ const verificationParser = StructuredOutputParser.fromZodSchema(
       .string()
       .describe(
         "최종 결정된 행정구역 포함 장소명. 힌트가 거짓말이거나 헷갈려하는 상태면 [사진 분석 결과]의 장소를 그대로 적고, 힌트가 확실하게 장소를 구체화(예: 동탄호수공원 + '루나쇼 하는 곳')해 준 경우에만 힌트를 조합한 장소명을 적으세요.",
+      ),
+    hint_based_location: z
+      .string()
+      .describe(
+        "[사진 분석 결과]는 무시하고, 오직 [사용자 입력 힌트]만 보고 추정할 수 있는 '행정구역 포함 장소명'을 적으세요. 힌트에 지역명(예: '제주', '목포')이 있으면 그 지역의 시/도(필요시 시/군/구)까지 정식 행정구역명으로 적으세요(예: '제주특별자치도', '전라남도 목포시'). 힌트에서 구체적인 지역을 전혀 알 수 없다면 빈 문자열로 두세요.",
       ),
     reason: z.string().describe("일치/모순/허용 여부를 판단한 구체적인 이유"),
     confidence: z
@@ -232,6 +237,11 @@ async function analyzeAndVerifyLocation(base64Image, userHint = "") {
    - 'is_matching'이 true이면서 유저 힌트가 정확한 단서인 경우: 두 정보를 조합하여 가장 정확한 풀네임을 완성하세요.
    - 'is_matching'이 false인 경우(모순): 사용자의 힌트는 거짓 정보이므로 전달받은 [사진 분석 결과]의 명칭을 토대로 최종 위치를 강제 고정하세요.
 
+4. hint_based_location 작성 규칙:
+   - is_matching 값과 무관하게, [사진 분석 결과]는 완전히 배제하고 [사용자 입력 힌트]만 근거로 작성하세요.
+   - 힌트 문장 안에 지명(시/도, 시/군/구, 동/읍/면, 랜드마크 등)이 포함되어 있다면, 그것을 정식 행정구역명 또는 명소명으로 정리해서 적으세요. (예: "제주에서찍음" -> "제주특별자치도", "목포에서 찍은사진이야" -> "전라남도 목포시")
+   - 힌트에 지명 정보가 전혀 없다면(예: "바다", "예쁜 카페") 빈 문자열("")로 두세요.
+
 반드시 설명 없이 주어진 JSON 스키마 형식으로만 응답하세요.
 {format_instructions}
 `;
@@ -278,7 +288,14 @@ async function analyzeAndVerifyLocation(base64Image, userHint = "") {
       errorType: "CONTRADICTORY_INPUT",
       message: "업로드한 사진과 입력하신 힌트 장소가 일치하지 않습니다.",
       reason: verificationResult.reason,
-      fallbackLocation: verificationResult.final_location,
+      // 이미지만 봤을 때 AI가 추정한 장소
+      imageGuess: detectedLocation,
+      imageConfidence: imageAnalysisResult.confidence ?? 0.5,
+      // 사용자가 입력한 힌트 원문
+      userHint: userHint.trim(),
+      // 힌트만 근거로 정리한 행정구역/장소명 (없으면 원문 힌트로 대체)
+      hintLocation:
+        verificationResult.hint_based_location?.trim() || userHint.trim(),
     };
   }
 
@@ -367,83 +384,10 @@ function fallbackRecommendation(region = "알 수 없음") {
   };
 }
 
-async function findLocation(req, res, next) {
-  try {
-    const { image, hint } = req.body || {};
-
-    if (!image) {
-      return res.status(400).json({ error: "이미지를 먼저 업로드해 주세요." });
-    }
-
-    let historyHint = "";
-    let parsed = null;
-
-    for (let i = 0; i < 3; i += 1) {
-      try {
-        parsed = await analyzeAndVerifyLocation(
-          image,
-          `${hint || ""}\n${historyHint}`,
-        );
-      } catch (error) {
-        console.error("analyzeAndVerifyLocation failed:", error);
-        parsed = null;
-      }
-
-      if (
-        parsed &&
-        (parsed.success ||
-          parsed.errorType === "CONTRADICTORY_INPUT" ||
-          parsed.errorType === "INVALID_IMAGE_TYPE")
-      ) {
-        break;
-      }
-
-      historyHint += `
-이전 결과가 확실하지 않았습니다.
-지형, 건축물, 식생, 기후 단서를 더 보수적으로 판단해 주세요.
-`;
-    }
-
-    if (
-      parsed &&
-      !parsed.success &&
-      parsed.errorType === "CONTRADICTORY_INPUT"
-    ) {
-      return res.status(400).json({
-        success: false,
-        errorType: parsed.errorType,
-        message: parsed.message,
-        reason: parsed.reason,
-      });
-    }
-
-    if (
-      parsed &&
-      !parsed.success &&
-      parsed.errorType === "INVALID_IMAGE_TYPE"
-    ) {
-      return res.status(400).json({
-        success: false,
-        errorType: parsed.errorType,
-        message: parsed.message,
-      });
-    }
-
-    if (!parsed || !parsed.success) {
-      return res.status(500).json({
-        success: false,
-        message: "이미지 분석 및 검증에 실패했습니다.",
-      });
-    }
-
-    const safeLocation = {
-      region: parsed.location,
-      confidence: parsed.confidence,
-    };
-
-    const recommendation = await recommendTravelPlace(`
+function buildLocationRecommendPrompt(region) {
+  return `
 추정 위치:
-${safeLocation.region}
+${region}
 
 당신은 대한민국 최고의 국내 여행 가이드입니다.
 제시된 조건을 바탕으로, 카카오맵/네이버 지도에서 '실제 검색 및 위치 조회가 가능한' 한국의 구체적인 여행지 7곳을 추천해 주세요.
@@ -493,26 +437,143 @@ ${safeLocation.region}
     }
   ]
 }
-`);
+`;
+}
 
-    const validSpots = [];
+async function getVerifiedRecommendation(region) {
+  const recommendation = await recommendTravelPlace(
+    buildLocationRecommendPrompt(region),
+  );
 
-    const filteredSpots = recommendation.spots.filter((spot) => {
-      return (
-        !safeLocation.region.includes(spot.name) &&
-        !spot.name.includes(safeLocation.region)
-      );
-    });
+  const validSpots = [];
 
-    for (const spot of filteredSpots) {
-      if (validSpots.length >= 3) break;
+  const filteredSpots = recommendation.spots.filter((spot) => {
+    return !region.includes(spot.name) && !spot.name.includes(region);
+  });
 
-      if (await verifyPlaceWithKakao(spot)) {
-        validSpots.push(spot);
-      }
+  for (const spot of filteredSpots) {
+    if (validSpots.length >= 3) break;
+
+    if (await verifyPlaceWithKakao(spot)) {
+      validSpots.push(spot);
+    }
+  }
+
+  recommendation.spots = validSpots;
+  return recommendation;
+}
+
+async function findLocation(req, res, next) {
+  try {
+    const { image, hint } = req.body || {};
+
+    if (!image) {
+      return res.status(400).json({ error: "이미지를 먼저 업로드해 주세요." });
     }
 
-    recommendation.spots = validSpots;
+    let historyHint = "";
+    let parsed = null;
+
+    for (let i = 0; i < 3; i += 1) {
+      try {
+        parsed = await analyzeAndVerifyLocation(
+          image,
+          `${hint || ""}\n${historyHint}`,
+        );
+      } catch (error) {
+        console.error("analyzeAndVerifyLocation failed:", error);
+        parsed = null;
+      }
+
+      if (
+        parsed &&
+        (parsed.success ||
+          parsed.errorType === "CONTRADICTORY_INPUT" ||
+          parsed.errorType === "INVALID_IMAGE_TYPE")
+      ) {
+        break;
+      }
+
+      historyHint += `
+이전 결과가 확실하지 않았습니다.
+지형, 건축물, 식생, 기후 단서를 더 보수적으로 판단해 주세요.
+`;
+    }
+
+    if (
+      parsed &&
+      !parsed.success &&
+      parsed.errorType === "CONTRADICTORY_INPUT"
+    ) {
+      // 에러로 막지 않고, 두 후보(이미지 분석 결과 / 사용자 힌트)를
+      // 프론트에 전달해 사용자가 직접 선택하게 한다.
+      return res.status(200).json({
+        success: false,
+        needsUserChoice: true,
+        errorType: parsed.errorType,
+        message: parsed.message,
+        reason: parsed.reason,
+        imageGuess: parsed.imageGuess,
+        userHint: parsed.userHint,
+        hintLocation: parsed.hintLocation,
+      });
+    }
+
+    if (
+      parsed &&
+      !parsed.success &&
+      parsed.errorType === "INVALID_IMAGE_TYPE"
+    ) {
+      return res.status(400).json({
+        success: false,
+        errorType: parsed.errorType,
+        message: parsed.message,
+      });
+    }
+
+    if (!parsed || !parsed.success) {
+      return res.status(500).json({
+        success: false,
+        message: "이미지 분석 및 검증에 실패했습니다.",
+      });
+    }
+
+    const safeLocation = {
+      region: parsed.location,
+      confidence: parsed.confidence,
+    };
+
+    const recommendation = await getVerifiedRecommendation(safeLocation.region);
+
+    return res.json({
+      source: "Gemini",
+      location: safeLocation,
+      recommendation:
+        recommendation || fallbackRecommendation(safeLocation.region),
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      error: error.message,
+      recommendation: fallbackRecommendation("알 수 없음"),
+    });
+  }
+}
+
+async function confirmLocation(req, res, next) {
+  try {
+    const { location } = req.body || {};
+
+    if (!location || !location.trim()) {
+      return res.status(400).json({ error: "확정할 위치 정보가 필요합니다." });
+    }
+
+    const safeLocation = {
+      region: location.trim(),
+      confidence: 1,
+    };
+
+    const recommendation = await getVerifiedRecommendation(safeLocation.region);
 
     return res.json({
       source: "Gemini",
@@ -637,4 +698,5 @@ ${extra || "(없음)"}
 module.exports = {
   findLocation,
   findMood,
+  confirmLocation,
 };
