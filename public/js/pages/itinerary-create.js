@@ -1,4 +1,4 @@
-import { clearItinerary, loadPayload, savePayload } from "./itinerary-state.js";
+import { clearItinerary, clearTripId, loadPayload, savePayload } from "./itinerary-state.js";
 
 const DEFAULT_PROVIDER = "gemini";
 const ENTRY_MODE_KEY = "itineraryEntryMode";
@@ -41,6 +41,7 @@ function restorePreviousPayload() {
     applyPayloadToForm(emptyPayload);
     savePayload(emptyPayload);
     clearItinerary();
+    clearTripId();
     clearSelectedSpotSession();
     return;
   }
@@ -58,6 +59,7 @@ function restorePreviousPayload() {
     applyPayloadToForm(imagePayload);
     savePayload(imagePayload);
     clearItinerary();
+    clearTripId();
     clearSelectedSpotSession();
     return;
   }

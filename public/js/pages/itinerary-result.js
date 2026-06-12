@@ -3,6 +3,8 @@ import {
   loadPayload,
   saveItinerary,
   savePayload,
+  loadTripId,
+  saveTripId,
 } from "./itinerary-state.js";
 
 const CREATE_PAGE_URL = "./itinerary-create.html";
@@ -87,6 +89,10 @@ function bindCommonEvents() {
   });
 
   saveButton?.addEventListener("click", handleSaveToAccount);
+
+  if (saveButton && loadTripId()) {
+    saveButton.textContent = "변경 사항 저장";
+  }
 }
 
 async function handleSaveToAccount() {
@@ -111,39 +117,51 @@ async function handleSaveToAccount() {
     saveButton.textContent = "저장 중...";
   }
 
+  const existingTripId = loadTripId();
+  const isUpdate = Boolean(existingTripId);
+  const url = isUpdate ? `/api/trips/${existingTripId}` : "/api/trips";
+  const method = isUpdate ? "PUT" : "POST";
+  const body = {
+    title: currentItinerary.headline || `${payload?.keyword || "여행"} 일정`,
+    payload: payload || {},
+    itinerary: currentItinerary,
+  };
+
   try {
-    const response = await fetch("/api/trips", {
-      method: "POST",
+    const response = await fetch(url, {
+      method,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({
-        title:
-          currentItinerary.headline || `${payload?.keyword || "여행"} 일정`,
-        payload: payload || {},
-        itinerary: currentItinerary,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (response.ok) {
-      showToast("일정이 저장되었습니다! 내 여행 목록에서 확인하세요.");
+      const successMessage = isUpdate
+        ? "일정이 업데이트되었습니다."
+        : "일정이 저장되었습니다! 내 여행 목록에서 확인하세요.";
+      showToast(successMessage);
+      if (!isUpdate) {
+        const data = await response.json().catch(() => ({}));
+        if (data?.trip?.id) saveTripId(data.trip.id);
+      }
       if (saveButton) {
-        saveButton.textContent = "저장됨 ✓";
+        saveButton.textContent = isUpdate ? "업데이트됨 ✓" : "저장됨 ✓";
       }
     } else {
       const data = await response.json().catch(() => ({}));
       showToast(data.message || "저장에 실패했습니다.");
       if (saveButton) {
         saveButton.disabled = false;
-        saveButton.textContent = "내 계정에 저장";
+        saveButton.textContent = isUpdate ? "변경 사항 저장" : "내 계정에 저장";
       }
     }
   } catch (_err) {
     showToast("저장 중 오류가 발생했습니다.");
     if (saveButton) {
       saveButton.disabled = false;
-      saveButton.textContent = "내 계정에 저장";
+      saveButton.textContent = isUpdate ? "변경 사항 저장" : "내 계정에 저장";
     }
   }
 }

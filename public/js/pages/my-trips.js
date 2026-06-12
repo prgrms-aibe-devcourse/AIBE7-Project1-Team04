@@ -1,4 +1,4 @@
-import { saveItinerary, savePayload } from './itinerary-state.js';
+import { saveItinerary, savePayload, saveTripId } from './itinerary-state.js';
 
 const container = document.querySelector('#tripsContainer');
 
@@ -110,6 +110,7 @@ async function viewTrip(id, token) {
     if (trip.title) itinerary.headline = trip.title;
     savePayload(trip.payload || {});
     saveItinerary(itinerary);
+    saveTripId(trip.id);
     window.location.href = '/pages/itinerary-result.html';
   } catch (_err) {
     showToast('오류가 발생했습니다.');
