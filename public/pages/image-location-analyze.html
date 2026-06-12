@@ -3,9 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/assets/icons/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="/assets/icons/favicon-16x16.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/assets/icons/apple-touch-icon.png"
+    />
     <title>PicTrip | 위치 기반 여행지 추천</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
@@ -14,13 +28,14 @@
     <link rel="stylesheet" href="/css/main.css" />
     <link rel="stylesheet" href="/css/image-location-analyze.css" />
     <script src="/js/common/auth-guard.js"></script>
-    <script>PicTripGuard.requireLogin();</script>
+    <script>
+      PicTripGuard.requireLogin();
+    </script>
   </head>
   <body>
     <div id="site-header"></div>
 
     <main>
-      <!-- ═══════════ HERO ═══════════ -->
       <section class="loc-hero">
         <div class="loc-hero-inner">
           <div class="loc-hero-badge">
@@ -31,104 +46,138 @@
             사진 속 장소를 추정해<br />여행지를 추천해드려요
           </h1>
           <p class="loc-hero-desc">
-            장소 사진을 업로드하고 힌트를 적어주세요.<br />
-            AI가 사진의 위치를 추정한 뒤 그 지역에 어울리는 여행지를 추천합니다.
+            장소 사진을 업로드하고 힌트를 적어주세요. AI가 사진의 위치를 추정한
+            뒤 그 지역에 어울리는 여행지를 추천합니다.
           </p>
         </div>
       </section>
 
-      <!-- ═══════════ FORM ═══════════ -->
       <section class="loc-section">
-        <div class="loc-container">
-          <button type="button" class="back-btn">← 홈으로</button>
+        <div class="loc-container container px-xxl-5">
+          <button type="button" class="back-btn mb-4">← 홈으로</button>
 
-          <div class="loc-card">
-            <div class="loc-card-grid">
-
-              <!-- 왼쪽: 이미지 업로드 -->
-              <div>
-                <p class="loc-section-label">이미지 업로드</p>
-                <input
-                  id="locationImageInput"
-                  type="file"
-                  accept="image/*"
-                  class="loc-file-input"
-                />
-                <label
-                  for="locationImageInput"
-                  id="locationUploadBox"
-                  class="upload-box"
-                >
-                  <div id="locationPlaceholder" class="upload-placeholder">
-                    <svg
-                      width="40"
-                      height="40"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="1.6"
-                        d="M4 16l4.5-4.5a2 2 0 012.8 0L16 16m-2-2l1.5-1.5a2 2 0 012.8 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    <p class="upload-placeholder-text">
-                      클릭하여 이미지를 업로드해주세요
-                    </p>
-                    <p class="upload-placeholder-sub">JPG, PNG · 최대 10MB</p>
-                  </div>
-                  <img
-                    id="locationPreview"
-                    class="preview d-none"
-                    alt="위치 추천 이미지 미리보기"
-                  />
-                </label>
-              </div>
-
-              <!-- 오른쪽: 입력 + 액션 -->
-              <div class="loc-form-col">
-                <p class="loc-section-label">추가 정보</p>
-
-                <div class="loc-field">
-                  <label for="locationHintInput" class="loc-field-label"
-                    >힌트용 텍스트</label
-                  >
+          <div class="row g-4 mb-5">
+            <div class="col-12 col-lg-5">
+              <div
+                class="loc-card p-4 h-100 d-flex flex-column justify-content-between"
+              >
+                <div>
+                  <p class="loc-section-label mb-2">이미지 업로드</p>
                   <input
-                    id="locationHintInput"
-                    type="text"
-                    class="loc-input"
-                    placeholder="예: 바다, 유럽풍 건물, 골목길, 여행 시기"
+                    id="locationImageInput"
+                    type="file"
+                    accept="image/*"
+                    class="loc-file-input"
                   />
+                  <label
+                    for="locationImageInput"
+                    id="locationUploadBox"
+                    class="upload-box w-100 mb-4"
+                  >
+                    <div id="locationPlaceholder" class="upload-placeholder">
+                      <svg
+                        width="40"
+                        height="40"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="1.6"
+                          d="M4 16l4.5-4.5a2 2 0 012.8 0L16 16m-2-2l1.5-1.5a2 2 0 012.8 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <p class="upload-placeholder-text">
+                        클릭하여 이미지를 업로드해주세요
+                      </p>
+                      <p class="upload-placeholder-sub">JPG, PNG · 최대 10MB</p>
+                    </div>
+                    <img
+                      id="locationPreview"
+                      class="preview d-none"
+                      alt="위치 추천 이미지 미리보기"
+                    />
+                  </label>
+
+                  <p class="loc-section-label mb-2">추가 정보</p>
+                  <div class="loc-field mb-4">
+                    <label for="locationHintInput" class="loc-field-label"
+                      >힌트용 텍스트</label
+                    >
+                    <input
+                      id="locationHintInput"
+                      type="text"
+                      class="loc-input"
+                      placeholder="예: 바다, 유럽풍 건물, 골목길"
+                    />
+                  </div>
                 </div>
 
-                <div class="loc-actions">
-                  <button
-                    id="locationRecommendBtn"
-                    type="button"
-                    class="btn-loc-primary"
-                    disabled
-                  >
-                    위치 기반 여행지 추천
-                  </button>
-                  <button
-                    id="moveToMoodBtn"
-                    type="button"
-                    class="btn-loc-secondary d-none"
-                  >
-                    분위기 기반 추천 →
-                  </button>
+                <div>
+                  <div class="loc-actions flex-column d-flex gap-2 mb-2">
+                    <button
+                      id="locationRecommendBtn"
+                      type="button"
+                      class="btn-loc-primary w-100"
+                      disabled
+                    >
+                      위치 기반 여행지 추천
+                    </button>
+                    <button
+                      id="moveToMoodBtn"
+                      type="button"
+                      class="btn-loc-secondary w-100 d-none"
+                    >
+                      분위기 기반 추천 →
+                    </button>
+                  </div>
+                  <div id="locationStatus" class="status text-center"></div>
+                  <div id="locationError" class="error-box"></div>
                 </div>
-
-                <div id="locationStatus" class="status"></div>
-                <div id="locationError" class="error-box"></div>
               </div>
+            </div>
 
+            <div class="col-12 col-lg-7">
+              <div
+                id="locationTopMapArea"
+                class="bg-white rounded-4 shadow-sm border p-4 h-100"
+                style="min-height: 400px"
+              >
+                <div class="section-label mb-3 fw-bold text-dark">
+                  🎯 사진 속 추정 위치
+                </div>
+                <div
+                  id="locationMapPlaceholder"
+                  class="h-100 d-flex align-items-center justify-content-center text-center text-muted"
+                >
+                  분석이 완료되면 기하학적 메타데이터 추정 위치가 카카오지도로
+                  표출됩니다.
+                </div>
+              </div>
             </div>
           </div>
 
-          <div id="locationResult" class="result"></div>
+          <div class="row">
+            <div class="col-12">
+              <div class="border-top pt-4">
+                <div
+                  class="section-label mb-4 fw-bold text-dark"
+                  style="font-size: 1.25rem"
+                >
+                  ✨ 연관 추천 여행지 3곳
+                </div>
+                <div id="locationSpotsResult">
+                  <div
+                    class="text-center text-muted py-5 bg-white rounded-4 shadow-sm border"
+                  >
+                    장소 매칭 후 추천된 주변 명소 리스트가 가로로 표출됩니다.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </main>
