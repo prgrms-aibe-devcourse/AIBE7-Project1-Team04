@@ -846,7 +846,7 @@ function createUserAddedItineraryItem({
   return {
     id: createItineraryItemId(dayNumber, insertAfterIndex + 1),
     order: insertAfterIndex + 2,
-    sectionTitle: "추가 일정",
+    sectionTitle: getSectionTitleByCategory(category),
     placeName,
     address,
     category,
@@ -1200,11 +1200,26 @@ function normalizeItineraryForEditing(itinerary) {
     day.day = dayNumber;
 
     const items = Array.isArray(day.items) ? day.items : [];
-    day.items = items.map((item, itemIndex) => ({
-      ...item,
-      id: item.id || item.itemId || createItineraryItemId(dayNumber, itemIndex),
-      order: itemIndex + 1,
-    }));
+    day.items = items.map((item, itemIndex) => {
+      const normalizedItem = {
+        ...item,
+        id:
+          item.id || item.itemId || createItineraryItemId(dayNumber, itemIndex),
+        order: itemIndex + 1,
+      };
+
+      if (
+        normalizedItem.isUserAdded &&
+        (!normalizedItem.sectionTitle ||
+          normalizedItem.sectionTitle === "추가 일정")
+      ) {
+        normalizedItem.sectionTitle = getSectionTitleByCategory(
+          normalizedItem.category,
+        );
+      }
+
+      return normalizedItem;
+    });
   });
 
   return itinerary;
@@ -1437,6 +1452,59 @@ function getIconByCategory(category = "") {
   }
 
   return "🗺️";
+}
+
+function getSectionTitleByCategory(category = "") {
+  const value = String(category || "").trim();
+
+  if (
+    value.includes("음식") ||
+    value.includes("식사") ||
+    value.includes("식당") ||
+    value.includes("맛집") ||
+    value.includes("레스토랑")
+  ) {
+    return "식사";
+  }
+
+  if (value.includes("카페")) {
+    return "카페";
+  }
+
+  if (
+    value.includes("숙소") ||
+    value.includes("숙박") ||
+    value.includes("호텔")
+  ) {
+    return "숙소";
+  }
+
+  if (value.includes("이동") || value.includes("교통")) {
+    return "이동";
+  }
+
+  if (
+    value.includes("체험") ||
+    value.includes("액티비티") ||
+    value.includes("공연")
+  ) {
+    return "체험";
+  }
+
+  if (
+    value.includes("관광") ||
+    value.includes("명소") ||
+    value.includes("문화") ||
+    value.includes("역사") ||
+    value.includes("박물관") ||
+    value.includes("전시") ||
+    value.includes("공원") ||
+    value.includes("해변")
+  ) {
+    return "관광";
+  }
+
+  return value || "추천";
 }
 
 function bindKakaoPlaceSearchInEditModal(modal) {
