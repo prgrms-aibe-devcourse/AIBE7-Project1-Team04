@@ -1,4 +1,4 @@
-﻿const API_BASE = "http://localhost:3000";
+const API_BASE = "";
 const SPINNER =
   '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>';
 

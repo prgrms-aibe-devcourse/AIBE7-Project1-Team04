@@ -23,6 +23,12 @@ const gemma = new ChatGoogleGenerativeAI({
 
 const groq = new ChatGroq({
   apiKey: process.env.GROQ_API_KEY,
+  model: "llama-3.3-70b-versatile",
+  temperature: 0,
+});
+
+const groqFallback = new ChatGroq({
+  apiKey: process.env.GROQ_API_KEY,
   model: "openai/gpt-oss-120b",
   temperature: 0,
 });
@@ -260,10 +266,31 @@ async function analyzeAndVerifyLocation(base64Image, userHint = "") {
   });
 
   console.time("groq-verify");
-  const step2Response = await withTimeout(
-    groq.invoke([{ role: "user", content: step2Input }]),
-    20000,
-  );
+  let step2Response;
+
+  try {
+    // 1차 시도: Llama 3.3
+    step2Response = await withTimeout(
+      groq.invoke([{ role: "user", content: step2Input }]),
+      20000,
+    );
+  } catch (groqError) {
+    console.warn(
+      "⚠️ Groq Llama 호출 실패, gpt-oss-120b로 fallback 진행:",
+      groqError.message,
+    );
+
+    try {
+      // 2차 시도 (Fallback): GPT-OSS-120B
+      step2Response = await withTimeout(
+        groqFallback.invoke([{ role: "user", content: step2Input }]),
+        20000,
+      );
+    } catch (fallbackError) {
+      console.error("❌ Fallback 모델마저 실패함:", fallbackError);
+      throw fallbackError;
+    }
+  }
   console.timeEnd("groq-verify");
 
   let verificationResult;
@@ -352,36 +379,45 @@ async function recommendTravelPlace(promptText) {
   try {
     console.time("groq-recommend");
 
-    const structuredGroq = groq.withStructuredOutput(recommendationSchema);
+    let response;
+    try {
+      // 1차 시도: Llama 3.3 기반 구조화 출력
+      const structuredGroq = groq.withStructuredOutput(recommendationSchema);
+      response = await withTimeout(
+        structuredGroq.invoke([
+          {
+            role: "user",
+            content: [{ type: "text", text: promptText }],
+          },
+        ]),
+        20000,
+      );
+    } catch (groqError) {
+      console.warn(
+        "⚠️ Groq 추천 호출 실패, gpt-oss-120b Fallback 진행:",
+        groqError.message,
+      );
 
-    const response = await withTimeout(
-      structuredGroq.invoke([
-        {
-          role: "user",
-          content: [{ type: "text", text: promptText }],
-        },
-      ]),
-      20000,
-    );
+      // 2차 시도 (Fallback): GPT-OSS-120B 기반 구조화 출력
+      const structuredFallback =
+        groqFallback.withStructuredOutput(recommendationSchema);
+      response = await withTimeout(
+        structuredFallback.invoke([
+          {
+            role: "user",
+            content: [{ type: "text", text: promptText }],
+          },
+        ]),
+        20000,
+      );
+    }
+
     console.timeEnd("groq-recommend");
-
     return response;
   } catch (error) {
-    console.error("recommendTravelPlace failed:", error);
+    console.error("recommendTravelPlace 모든 Groq 모델 실패:", error);
     return fallbackRecommendation("대한민국");
   }
-}
-
-function fallbackRecommendation(region = "알 수 없음") {
-  return {
-    spots: [
-      {
-        name: "추천 여행지",
-        region,
-        reason: "기본 추천 정보를 반환했습니다.",
-      },
-    ],
-  };
 }
 
 function buildLocationRecommendPrompt(region) {
