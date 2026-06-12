@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3000";
+const API_BASE = "";
 const SPINNER =
   '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>';
 
@@ -18,7 +18,10 @@ const elements = {
   button: document.querySelector("#locationRecommendBtn"),
   status: document.querySelector("#locationStatus"),
   error: document.querySelector("#locationError"),
-  result: document.querySelector("#locationResult"),
+
+  // 💡 [레이아웃 분할 교정] 상단 우측 영역과 하단 추천 리스트 영역 분리 매핑
+  result: document.querySelector("#locationTopMapArea"),
+  spotsResult: document.querySelector("#locationSpotsResult"),
 };
 
 function ensureKakaoReady() {
@@ -167,30 +170,45 @@ function escapeHtml(str) {
 }
 
 function setStatus(el, message, animate = false) {
+  if (!el) return;
   el.innerHTML = animate
     ? `<span class="status-dots">${message}</span>`
     : message;
 }
 
 function clearStatus(el) {
+  if (!el) return;
   el.textContent = "";
 }
 
 function showError(el, resultEl, message) {
-  el.innerHTML = message.replace(/\n/g, "<br>");
-  el.classList.add("visible");
-  resultEl.classList.remove("visible");
-  resultEl.innerHTML = "";
+  if (el) {
+    el.innerHTML = message.replace(/\n/g, "<br>");
+    el.classList.add("visible");
+  }
+  // 💡 방어 코드 적용
+  if (resultEl) {
+    resultEl.innerHTML = `
+      <div class="p-4 text-center text-danger">
+        <p class="fw-bold mb-1">⚠️ 오류가 발생했습니다.</p>
+        <span class="small text-secondary">${escapeHtml(message)}</span>
+      </div>
+    `;
+  }
+  if (elements.spotsResult) {
+    elements.spotsResult.innerHTML =
+      '<div class="text-center text-muted py-4">결과를 불러올 수 없습니다.</div>';
+  }
 }
 
 function clearError(el) {
+  if (!el) return;
   el.textContent = "";
   el.classList.remove("visible");
 }
 
 function friendlyError(error) {
   const msg = error?.message || String(error);
-
   if (
     msg.includes("Failed to fetch") ||
     msg.includes("NetworkError") ||
@@ -204,20 +222,17 @@ function friendlyError(error) {
   if (msg === "500" || msg.includes("Internal Server Error")) {
     return "서버에서 이미지를 분석하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
   }
-
-  if (msg && msg !== "400" && isNaN(msg)) {
-    return msg;
-  }
-
+  if (msg && msg !== "400" && isNaN(msg)) return msg;
   return "요청을 처리하는 동안 문제가 발생했습니다. 다시 시도해 주세요.";
 }
 
+// 💡 [하단 가로배치 스케치 반영] 추천 여행지 3곳을 밑으로 빼고 부트스트랩 3열(col-md-4) 가로 정렬
 async function renderSpots(spots) {
   if (!Array.isArray(spots) || spots.length === 0) {
-    return '<p class="text-secondary mb-0">추천 결과가 없습니다.</p>';
+    return '<div class="text-center text-muted py-4">추천 결과가 없습니다.</div>';
   }
 
-  let html = '<div class="custom-travel-container fade-up">';
+  let html = '<div class="row g-4 fade-up">';
 
   for (const [index, spot] of spots.entries()) {
     const spotName = spot.name || "추천 여행지";
@@ -225,27 +240,26 @@ async function renderSpots(spots) {
     const reason = spot.reason || "";
 
     html += `
-    <div class="custom-travel-item">
-      <div class="travel-card">
-        <div id="map-${index}" class="travel-map"></div>
-        <div class="travel-card-body">
+    <div class="col-12 col-md-4">
+      <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden d-flex flex-column" style="background:#white;">
+        <div id="map-${index}" class="travel-map" style="height: 190px; width: 100%;"></div>
+        <div class="card-body p-3 d-flex flex-column justify-content-between flex-grow-1">
           <div>
-            <div class="travel-card-head">
-              <h4 class="travel-card-title">${escapeHtml(spotName)}</h4>
-              ${region ? `<span class="travel-card-subtitle">📍 ${escapeHtml(region)}</span>` : ""}
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+              <h5 class="fw-bold mb-0 text-dark fs-6">${escapeHtml(spotName)}</h5>
+              ${region ? `<span class="badge bg-primary-subtle text-primary flex-shrink-0" style="font-size: 11px;">📍 ${escapeHtml(region)}</span>` : ""}
             </div>
-            <p class="travel-reason">${escapeHtml(reason)}</p>
+            <p class="text-secondary small mb-3" style="line-height: 1.5; min-height: 4.5em; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+              ${escapeHtml(reason)}
+            </p>
           </div>
           <button
             type="button"
-            class="btn spot-action-btn mt-auto"
+            class="btn spot-action-btn btn-outline-primary btn-sm w-100 py-2 d-flex align-items-center justify-content-center"
             data-name="${escapeHtml(spotName)}"
             data-region="${escapeHtml(region)}"
             data-reason="${escapeHtml(reason)}"
           >
-            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="me-1">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
-            </svg>
             이 여행지로 일정 만들기
           </button>
         </div>
@@ -258,60 +272,29 @@ async function renderSpots(spots) {
   return html;
 }
 
-async function renderLocationResult(data) {
-  let html = "";
-
-  if (data.location) {
-    const loc = data.location;
-    const estName = loc.region || "추정된 장소";
-
-    html += `
-      <div class="mb-5">
-        <div class="section-label mb-3">🎯 사진 속 추정 위치</div>
-        <div class="custom-travel-container">
-          <div class="custom-travel-item" style="flex: 1 1 100% !important;">
-            <div class="travel-card">
-              <div id="estimated-map" class="travel-map"></div>
-              <div class="travel-card-body">
-                <div>
-                  <div class="travel-card-head">
-                    <h4 class="travel-card-title">${escapeHtml(estName)}</h4>
-                    <div class="meta-row mt-2">
-                      ${Number.isFinite(loc.confidence) ? `<span class="meta-badge">AI 매칭 신뢰도 ${loc.confidence * 100}%</span>` : ""}
-                    </div>
-                  </div>
-                  <p class="travel-reason">AI 분석 결과, 업로드하신 이미지와 일치하는 추정 장소입니다. 해당 장소 정보를 카카오 지도 API로 정밀 조회하여 마운트했습니다.</p>
-                </div>
-                <button
-                  type="button"
-                  class="btn spot-action-btn mt-3"
-                  data-name="${escapeHtml(estName)}"
-                  data-region="${escapeHtml(estName)}"
-                  data-reason="사진 파일 분석을 통해 역추적된 인공지능 탐지 장소입니다."
-                >
-                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="me-1">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
-                  </svg>
-                  이 추정 위치로 일정 만들기
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+// 💡 [상단 우측 전용 마크업] 오른쪽 영역엔 '사진 속 추정 위치 지도만' 렌더링하는 전용 함수
+function renderEstimatedTopCard(loc) {
+  const estName = loc.region || "추정된 장소";
+  return `
+    <div class="fade-up d-flex flex-column h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold mb-0 text-primary fs-5">${escapeHtml(estName)}</h4>
+        ${Number.isFinite(loc.confidence) ? `<span class="badge bg-success-subtle text-success">AI 매칭 신뢰도 ${loc.confidence * 100}%</span>` : ""}
       </div>
-    `;
-  }
-
-  if (data.recommendation?.spots) {
-    html += `
-      <div>
-        <div class="section-label mb-3">✨ 연관 추천 여행지</div>
-        ${await renderSpots(data.recommendation.spots)}
+      <div id="estimated-map" class="travel-map flex-grow-1 rounded-3 border" style="min-height: 260px; width: 100%;"></div>
+      <div class="mt-3">
+        <button
+          type="button"
+          class="btn spot-action-btn btn-primary w-100 py-2"
+          data-name="${escapeHtml(estName)}"
+          data-region="${escapeHtml(estName)}"
+          data-reason="사진 분석을 통해 역추적된 가상 좌표계 매칭 장소입니다."
+        >
+          📍 이 추정 위치로 일정 만들기
+        </button>
       </div>
-    `;
-  }
-
-  return html;
+    </div>
+  `;
 }
 
 function updatePreview(file, imageEl, placeholderEl, uploadBoxEl) {
@@ -370,17 +353,30 @@ function setImageFromFile(file, imageEl, placeholderEl, uploadBoxEl, btnEl) {
   };
 }
 
+// 💡 [핵심 교정부] 결과 데이터를 타겟 박스들에 각각 찢어서 매핑해주는 파이프라인 수립
 async function mountLocationResult(data, resultEl, statusEl) {
   configRecommendationSpots(data.recommendation?.spots || []);
 
-  resultEl.innerHTML = await renderLocationResult(data);
+  // 1. 상단 우측 전용 영역에는 추정위치 지도 주입
+  if (data.location && resultEl) {
+    resultEl.innerHTML = renderEstimatedTopCard(data.location);
+    resultEl.classList.add("visible");
+  }
+
+  // 2. 하단 와이드 영역에는 연관 추천지 3곳 주입
+  if (data.recommendation?.spots && elements.spotsResult) {
+    elements.spotsResult.innerHTML = await renderSpots(
+      data.recommendation.spots,
+    );
+  }
 
   await new Promise(requestAnimationFrame);
   await new Promise(requestAnimationFrame);
-
   await new Promise((r) => setTimeout(r, 100));
+
   const estName = data.location?.region || null;
-  resultEl.classList.add("visible");
+
+  // 3. 지도 인스턴스 초기화 바인딩 실행
   await renderKakaoMaps(data.recommendation?.spots || [], estName);
 
   setStatus(statusEl, "분석 완료");
@@ -392,42 +388,49 @@ function renderLocationChoice(data) {
   const userHint = data.userHint || "";
   const reason = data.reason || "";
   const hintLabel = userHint
-    ? `${escapeHtml(hintLocation)} (입력하신 힌트: "${escapeHtml(userHint)}")`
+    ? `${escapeHtml(hintLocation)} (입력: "${escapeHtml(userHint)}")`
     : escapeHtml(hintLocation);
 
+  // 💡 세로로 길쭉해지는 버그를 잡기 위해 구조를 단순화하고 Bootstrap 패딩 및 여백 조정
   return `
-    <div class="custom-travel-container fade-up">
-      <div class="custom-travel-item" style="flex: 1 1 100% !important;">
-        <div class="travel-card">
-          <div class="travel-card-body">
-            <div>
-              <div class="travel-card-head">
-                <h4 class="travel-card-title">🤔 어느 위치로 추천을 진행할까요?</h4>
-              </div>
-              <p class="travel-reason">
-                AI가 사진을 분석한 결과와 입력하신 힌트가 서로 다른 장소를 가리키고 있어요.${
-                  reason ? `<br>💡 ${escapeHtml(reason)}` : ""
-                }
-              </p>
-            </div>
-            <div class="d-flex flex-wrap gap-2 mt-3">
-              <button
-                type="button"
-                class="btn btn-outline-primary loc-choice-btn"
-                data-location="${escapeHtml(imageGuess)}"
-              >
-                📷 AI 추정: ${escapeHtml(imageGuess)}
-              </button>
-              <button
-                type="button"
-                class="btn btn-outline-secondary loc-choice-btn"
-                data-location="${escapeHtml(hintLocation)}"
-              >
-                ✏️ 입력한 힌트 기준: ${hintLabel}
-              </button>
-            </div>
-          </div>
+    <div class="fade-up d-flex flex-column h-100 justify-content-center py-2">
+      <div class="text-center mb-4">
+        <div class="p-2 bg-warning-subtle text-warning-invert rounded-circle d-inline-block mb-2" style="width: 45px; height: 45px; line-height: 25px; font-size: 20px;">
+          🤔
         </div>
+        <h4 class="fw-bold text-dark fs-5 mb-2">어느 위치로 추천을 진행할까요?</h4>
+        <p class="text-secondary small mb-0 px-2" style="line-height: 1.5;">
+          AI 분석 결과와 입력하신 힌트가 서로 다른 장소를 가리키고 있습니다.<br>
+          ${reason ? `<span class="text-primary fw-medium">💡 ${escapeHtml(reason)}</span>` : "더 정확한 추천을 위해 기준이 될 장소를 선택해 주세요."}
+        </p>
+      </div>
+
+      <div class="d-flex flex-column gap-3 px-1">
+        <button
+          type="button"
+          class="btn btn-outline-primary text-start loc-choice-btn p-3 rounded-3 shadow-sm border-2 d-flex align-items-center justify-content-between"
+          data-location="${escapeHtml(imageGuess)}"
+          style="transition: all 0.2s ease;"
+        >
+          <div>
+            <span class="badge bg-primary mb-1 d-inline-block" style="font-size: 11px; padding: 4px 8px;">📷 AI 추정 기준</span>
+            <div class="fw-bold text-dark fs-6 mt-1">${escapeHtml(imageGuess)}</div>
+          </div>
+          <span class="text-primary fs-5 fw-bold">→</span>
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-outline-secondary text-start loc-choice-btn p-3 rounded-3 shadow-sm border-2 d-flex align-items-center justify-content-between"
+          data-location="${escapeHtml(hintLocation)}"
+          style="transition: all 0.2s ease;"
+        >
+          <div>
+            <span class="badge bg-secondary mb-1 d-inline-block" style="font-size: 11px; padding: 4px 8px;">✏️ 입력 힌트 기준</span>
+            <div class="fw-bold text-dark fs-6 mt-1">${hintLabel}</div>
+          </div>
+          <span class="text-secondary fs-5 fw-bold">→</span>
+        </button>
       </div>
     </div>
   `;
@@ -507,7 +510,6 @@ async function analyzeLocation() {
 
     if (!response.ok) {
       const errorData = await response.json();
-
       console.error("에러 메시지:", errorData.message);
       alert(errorData.message);
       return;
@@ -516,24 +518,28 @@ async function analyzeLocation() {
     const data = await response.json();
     if (requestId !== state.requestId) return;
 
+    // 만약 사용자의 추가 선택이 필요한 백엔드 스펙 분기 시 우측 상단 카드에 선택창 렌더링
     if (data.needsUserChoice) {
       clearInterval(timer);
-      resultEl.innerHTML = renderLocationChoice(data);
-      resultEl.classList.add("visible");
+      if (resultEl) {
+        resultEl.innerHTML = renderLocationChoice(data);
+        resultEl.classList.add("visible");
+      }
       setStatus(statusEl, "선택이 필요합니다");
 
-      resultEl.querySelectorAll(".loc-choice-btn").forEach((choiceBtn) => {
-        choiceBtn.addEventListener("click", () => {
-          confirmLocationChoice(
-            choiceBtn.dataset.location,
-            statusEl,
-            errorEl,
-            resultEl,
-            resultEl,
-          );
+      if (resultEl) {
+        resultEl.querySelectorAll(".loc-choice-btn").forEach((choiceBtn) => {
+          choiceBtn.addEventListener("click", () => {
+            confirmLocationChoice(
+              choiceBtn.dataset.location,
+              statusEl,
+              errorEl,
+              resultEl,
+              resultEl,
+            );
+          });
         });
-      });
-
+      }
       return;
     }
 
@@ -544,9 +550,7 @@ async function analyzeLocation() {
     console.log("error.message =", error.message);
 
     if (requestId !== state.requestId) return;
-
     showError(errorEl, resultEl, error.message);
-
     clearStatus(statusEl);
   } finally {
     clearInterval(timer);
