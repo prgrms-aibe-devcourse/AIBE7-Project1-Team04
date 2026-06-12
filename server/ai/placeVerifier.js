@@ -157,13 +157,11 @@ async function verifyPlaceItem(item, context, target = {}) {
 }
 
 async function verifyFoodCafeItem(item, context, categoryType, target = {}) {
-  const matched = pickStrictFoodCafeCandidate(
+  const exactPlace = await findKakaoFoodCafeExactPlace(
     item,
-    candidates,
-    categoryCode,
     context,
-    target,
     categoryType,
+    target,
   );
 
   if (exactPlace) {
